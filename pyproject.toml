@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "zeph"
+version = "0.1.0"
+description = ""
+authors = ["Matthieu Gouel <matthieu.gouel@protonmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+requests = "^2.25.0"
+click = "^7.1.2"
+clickhouse-driver = "^0.1.5"
+py-radix = "^0.10.0"
+mrtparse = "^2.0.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+black = {version = "^20.8b1", allow-prereleases = true}
+flake8 = "^3.8.4"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
