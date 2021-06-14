@@ -1,14 +1,22 @@
 """Zeph prefix selectors."""
 
-import ipaddress
 import random
 
 from abc import ABC, abstractmethod
 from clickhouse_driver import Client
 from collections import defaultdict, Counter, OrderedDict
+from ipaddress import ip_network
+
+from zeph.queries import GetDiscoveries
 
 
 class AbstractSelector(ABC):
+    def _sanitize_uuid(self, uuid):
+        return uuid.replace("-", "_")
+
+    def _reverse_sanitize_uuid(self, uuid):
+        return uuid.replace("_", "-")
+
     @abstractmethod
     def select(*args, **kwargs):
         pass
@@ -21,7 +29,7 @@ class AbstractSelector(ABC):
             random.randint(0, 255),
         )
 
-        return ipaddress.ip_network(f"{a}.{b}.{c}.0/24")
+        return ip_network(f"{a}.{b}.{c}.0/24")
 
     def _select_random(self, agent, budget, preset=None):
         if preset is None:
@@ -71,31 +79,31 @@ class AbstractEpsilonSelector(AbstractSelector):
         database_host,
         database_name,
         epsilon,
-        measurement_uuid=None,
         authorized_prefixes=None,
     ):
         self.client = Client(database_host)
         self.database_name = database_name
 
         self.epsilon = epsilon
-        self.measurement_uuid = measurement_uuid
 
         self.authorized_prefixes = authorized_prefixes
 
-        self.rank_per_agent = self._rank(self._discoveries(measurement_uuid))
+        self._discoveries = {}
+        self.rank_per_agent = {}
 
-    def _sanitize_uuid(self, uuid):
-        return uuid.replace("-", "_")
+    def ip_to_network(self, ip, v4_length=24, v6_length=48):
+        ip_mapped = ip.ipv4_mapped
+        if ip_mapped:
+            return f"{ip_mapped}/{v4_length}"
+        return f"{ip}/{v6_length}"
 
-    def _reverse_sanitize_uuid(self, uuid):
-        return uuid.replace("_", "-")
-
-    def _discoveries(self, measurement_uuid):
+    def compute_discoveries(self, measurement_uuid, subsets=None) -> dict:
         """Get the discoveries per agents."""
         if measurement_uuid is None:
             return
 
-        print("* Get discoveries")
+        if subsets is None:
+            subsets = ip_network("0.0.0.0/0").subnets(new_prefix=4)
 
         # Get all measurement tables
         tables = self.client.execute_iter(
@@ -103,51 +111,18 @@ class AbstractEpsilonSelector(AbstractSelector):
             f"'results__{self._sanitize_uuid(measurement_uuid)}%'"
         )
         tables = [table[0] for table in tables]
-        ipv4_split = 16
 
-        subsets = {}
+        directives = {}
         for table in tables:
-            print(f"** {table}")
             agent = self._reverse_sanitize_uuid(table.split("__")[2])
 
-            discoveries = {}
-            for split in range(0, ipv4_split):
-                lower_bound = int(split * ((2 ** 32 - 1) / ipv4_split))
-                upper_bound = int((split + 1) * ((2 ** 32 - 1) / ipv4_split))
+            for prefix, protocol, discoveries in GetDiscoveries().execute_iter(
+                self.client, self.database_name + "." + table, subsets
+            ):
+                directives[(agent, prefix, protocol)] = set(discoveries)
+        return directives
 
-                # Get links and singular nodes
-                discoveries_per_split = self.client.execute_iter(
-                    "WITH "
-                    "groupUniqArray((dst_ip, src_port, dst_port, reply_ip, ttl, round)) as replies_s, "  # noqa
-                    "arraySort(x->(x.1, x.2, x.3, x.5), replies_s) as sorted_replies_s, "  # noqa
-                    "arrayPopFront(sorted_replies_s) as replies_d, "
-                    "arrayConcat(replies_d, [(0,0,0,0,0,0)]) as replies_d_sized, "
-                    "arrayZip(sorted_replies_s, replies_d_sized) as potential_links, "
-                    "arrayFilter(x->x.1.5 + 1 == x.2.5, potential_links) as links, "
-                    "arrayDistinct(arrayMap(x->((x.1.4, x.1.5), (x.2.4, x.2.5)), links)) as links_no_round, "  # noqa
-                    "arrayDistinct(arrayMap(x-> (x.1.1,x.2.1), links_no_round)) as links_no_ttl, "  # noqa
-                    "arrayDistinct(arrayMap(x->x.4, replies_s)) as nodes, "
-                    "arrayDistinct(flatten(arrayMap(x-> [x.1, x.2], links_no_ttl))) AS nodes_in_links, "  # noqa
-                    "arrayFilter(x -> has(nodes_in_links, x) = 0, nodes) AS standalone_nodes, "  # noqa
-                    "arrayConcat(links_no_ttl, arrayMap(x -> (NULL, x), standalone_nodes)) AS discoveries "  # noqa
-                    "SELECT dst_prefix, discoveries "
-                    f"FROM {self.database_name}.{table} "
-                    "WHERE reply_ip != dst_ip AND type = 11 "
-                    f"AND dst_prefix > {lower_bound} AND dst_prefix <= {upper_bound} "
-                    "GROUP BY (src_ip, dst_prefix)",
-                    settings={
-                        "max_block_size": 100000,
-                        "connect_timeout": 1000,
-                        "send_timeout": 6000,
-                        "receive_timeout": 100000,
-                        "read_backoff_min_latency_ms": 100000,
-                    },
-                )
-                for prefix, discoveries in discoveries_per_split:
-                    subsets[(agent, prefix)] = set(discoveries)
-        return subsets
-
-    def select(self, agent_uuid, budget: int):
+    def select(self, agent_uuid, budget: int, exploitation_only=False):
         """
         epsilon-based policy :
             * select e where eB will be used for exploration.
@@ -173,18 +148,18 @@ class AbstractEpsilonSelector(AbstractSelector):
         # Pick the (1-e)B prefix with the best reward
         prefixes_exploitation = set(rank[:n_prefixes_exploitation])
         prefixes_exploitation = set(
-            [
-                ipaddress.ip_network(str(ipaddress.ip_address(p)) + "/24")
-                for p in prefixes_exploitation
-            ]
+            [self.ip_to_network(p) for p in prefixes_exploitation]
         )
+
+        if exploitation_only:
+            return prefixes_exploitation
 
         # Add random prefixes until the budget is completely burned
         return self._select_random(agent_uuid, budget, preset=prefixes_exploitation)
 
 
 class EpsilonRewardSelector(AbstractEpsilonSelector):
-    def _rank(self, subsets):
+    def compute_rank(self, subsets):
         """Compute the prefixes reward per agent based on the discoveries."""
         if subsets is None:
             return
@@ -214,7 +189,7 @@ class EpsilonRewardSelector(AbstractEpsilonSelector):
 
 
 class EpsilonNaiveSelector(AbstractEpsilonSelector):
-    def _rank(self, subsets):
+    def compute_rank(self, subsets):
         """Compute the prefixes rank per agent based on the discoveries."""
         if subsets is None:
             return
@@ -248,7 +223,7 @@ class EpsilonNaiveSelector(AbstractEpsilonSelector):
 
 
 class EpsilonGreedySelector(AbstractEpsilonSelector):
-    def _rank(self, subsets):
+    def compute_rank(self, subsets):
         """Compute the prefixes rank per agent based on the discoveries."""
         if subsets is None:
             return
@@ -272,7 +247,7 @@ class EpsilonGreedySelector(AbstractEpsilonSelector):
 
 
 class EpsilonDFGSelector(AbstractEpsilonSelector):
-    def _rank(self, subsets, p=1.05):
+    def compute_rank(self, subsets, p=1.05):
         """Compute the prefixes rank per agent based on the discoveries."""
         if subsets is None:
             return
@@ -309,5 +284,4 @@ class EpsilonDFGSelector(AbstractEpsilonSelector):
                 rank_per_agent[subset[0]].append(subset[1])
                 covered.update(subsets[subset])
 
-        print(len(covered))
         return rank_per_agent

@@ -1,4 +1,9 @@
-"""Interface with Iris."""
+"""
+Zeph (v1) CLI.
+
+Communicate with Iris to perform measurements.
+"""
+
 
 import click
 import logging
