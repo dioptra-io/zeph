@@ -7,6 +7,7 @@ from clickhouse_driver import Client
 from collections import defaultdict, Counter, OrderedDict
 from ipaddress import ip_network
 
+from diamond_miner.queries import AddrType
 from zeph.queries import GetDiscoveries
 
 
@@ -81,8 +82,9 @@ class AbstractEpsilonSelector(AbstractSelector):
         epsilon,
         authorized_prefixes=None,
     ):
-        self.client = Client(database_host)
+        self.database_host = database_host
         self.database_name = database_name
+        self.database_url = f"clickhouse://{database_host}/{database_name}"
 
         self.epsilon = epsilon
 
@@ -102,24 +104,24 @@ class AbstractEpsilonSelector(AbstractSelector):
         if measurement_uuid is None:
             return
 
-        if subsets is None:
-            subsets = ip_network("0.0.0.0/0").subnets(new_prefix=4)
-
         # Get all measurement tables
-        tables = self.client.execute_iter(
+        tables = Client.from_url(self.database_url).execute_iter(
             f"SHOW TABLES FROM {self.database_name} LIKE "
             f"'results__{self._sanitize_uuid(measurement_uuid)}%'"
         )
         tables = [table[0] for table in tables]
+        measurement_ids = ["__".join(table.split("__")[1:]) for table in tables]
 
         directives = {}
-        for table in tables:
-            agent = self._reverse_sanitize_uuid(table.split("__")[2])
+        for measurement_id in measurement_ids:
+            agent = self._reverse_sanitize_uuid(measurement_id.split("__")[1])
 
-            for prefix, protocol, discoveries in GetDiscoveries().execute_iter(
-                self.client, self.database_name + "." + table, subsets
-            ):
-                directives[(agent, prefix, protocol)] = set(discoveries)
+            for prefix, protocol, discoveries in GetDiscoveries(
+                addr_type=AddrType.FixedString
+            ).execute_iter(self.database_url, measurement_id):
+                directives[(agent, self.ip_to_network(prefix), protocol)] = set(
+                    discoveries
+                )
         return directives
 
     def select(self, agent_uuid, budget: int, exploitation_only=False):
@@ -145,14 +147,11 @@ class AbstractEpsilonSelector(AbstractSelector):
             # The agent did not participated to the previous measurement
             return self._select_random(agent_uuid, budget)
 
+        if exploitation_only:
+            return set(rank)
+
         # Pick the (1-e)B prefix with the best reward
         prefixes_exploitation = set(rank[:n_prefixes_exploitation])
-        prefixes_exploitation = set(
-            [self.ip_to_network(p) for p in prefixes_exploitation]
-        )
-
-        if exploitation_only:
-            return prefixes_exploitation
 
         # Add random prefixes until the budget is completely burned
         return self._select_random(agent_uuid, budget, preset=prefixes_exploitation)

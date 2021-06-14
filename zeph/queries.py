@@ -1,16 +1,23 @@
 from dataclasses import dataclass
 
 
-from diamond_miner.defaults import DEFAULT_PROBE_TTL_COLUMN
 from diamond_miner.queries.fragments import IPNetwork
-from diamond_miner.queries.query import DEFAULT_SUBSET, Query
+from diamond_miner.queries.query import (
+    UNIVERSE_SUBSET,
+    ResultsQuery,
+    LinksQuery,
+    results_table,
+    links_table,
+)
 
 # -- Old queries for discoveries
 
 
 @dataclass(frozen=True)
-class GetDiscoveriesFromResults(Query):
-    def query(self, table: str, subset: IPNetwork = DEFAULT_SUBSET) -> str:
+class GetDiscoveriesFromResults(ResultsQuery):
+    def statement(
+        self, measurement_id: str, subset: IPNetwork = UNIVERSE_SUBSET
+    ) -> str:
         return f"""
         WITH
         -- 1) Compute the links
@@ -21,7 +28,7 @@ class GetDiscoveriesFromResults(Query):
                 probe_dst_addr,
                 probe_src_port,
                 probe_dst_port,
-                {DEFAULT_PROBE_TTL_COLUMN},
+                probe_ttl,
                 IPv6NumToString(reply_src_addr),
                 round
             )
@@ -53,14 +60,14 @@ class GetDiscoveriesFromResults(Query):
         SELECT probe_dst_prefix,
                probe_protocol,
                discoveries
-        FROM {table}
+        FROM {results_table(measurement_id)}
         WHERE {self.common_filters(subset)}
         GROUP BY (probe_protocol, probe_src_addr, probe_dst_prefix)
         """
 
 
 @dataclass(frozen=True)
-class GetFlowsPerDiscoveriesFromResults(Query):
+class GetFlowsPerDiscoveriesFromResults(ResultsQuery):
     """
     Return the flows per discovery.
 
@@ -68,7 +75,9 @@ class GetFlowsPerDiscoveriesFromResults(Query):
     >>> execute(GetFlows(), 'test_nsdi_example')[0][0]
     """
 
-    def query(self, table: str, subset: IPNetwork = DEFAULT_SUBSET) -> str:
+    def statement(
+        self, measurement_id: str, subset: IPNetwork = UNIVERSE_SUBSET
+    ) -> str:
         return f"""
         WITH
         -- 1) Compute the links
@@ -80,7 +89,7 @@ class GetFlowsPerDiscoveriesFromResults(Query):
                 IPv6NumToString(probe_dst_addr),
                 probe_src_port,
                 probe_dst_port,
-                {DEFAULT_PROBE_TTL_COLUMN},
+                probe_ttl,
                 round
             )
         ) AS replies_unsorted,
@@ -109,7 +118,7 @@ class GetFlowsPerDiscoveriesFromResults(Query):
         SELECT probe_dst_prefix,
                probe_protocol,
                discoveries
-        FROM {table}
+        FROM {results_table(measurement_id)}
         WHERE {self.common_filters(subset)}
         GROUP BY (probe_protocol, probe_src_addr, probe_dst_prefix)
         """
@@ -119,8 +128,10 @@ class GetFlowsPerDiscoveriesFromResults(Query):
 
 
 @dataclass(frozen=True)
-class GetOneFlowPerNode(Query):
-    def query(self, table: str, subset: IPNetwork = DEFAULT_SUBSET) -> str:
+class GetOneFlowPerNode(ResultsQuery):
+    def statement(
+        self, measurement_id: str, subset: IPNetwork = UNIVERSE_SUBSET
+    ) -> str:
         return f"""
         SELECT {self.addr_cast('reply_src_addr')},
                probe_protocol,
@@ -129,43 +140,47 @@ class GetOneFlowPerNode(Query):
                        probe_dst_addr,
                        probe_src_port,
                        probe_dst_port,
-                       {DEFAULT_PROBE_TTL_COLUMN}
+                       probe_ttl
                     )
                 )[1]
-        FROM {table}
+        FROM {results_table(measurement_id)}
         WHERE {self.common_filters(subset)}
         GROUP BY (probe_protocol, reply_src_addr)
         """
 
 
 @dataclass(frozen=True)
-class GetFlows(Query):
-    def query(self, table: str, subset: IPNetwork = DEFAULT_SUBSET) -> str:
+class GetFlows(ResultsQuery):
+    def statement(
+        self, measurement_id: str, subset: IPNetwork = UNIVERSE_SUBSET
+    ) -> str:
         return f"""
         -- structure the discovery correctly
         SELECT  {self.addr_cast('reply_src_addr')},
                 {self.addr_cast('probe_dst_addr')},
                 probe_src_port,
                 probe_dst_port,
-                {DEFAULT_PROBE_TTL_COLUMN},
+                probe_ttl,
                 probe_protocol
-        FROM {table}
+        FROM {results_table(measurement_id)}
         WHERE {self.common_filters(subset)}
         """
 
 
 @dataclass(frozen=True)
-class GetFlowsPerNode(Query):
-    def query(self, table: str, subset: IPNetwork = DEFAULT_SUBSET) -> str:
+class GetFlowsPerNode(ResultsQuery):
+    def statement(
+        self, measurement_id: str, subset: IPNetwork = UNIVERSE_SUBSET
+    ) -> str:
         return f"""
         -- structure the discovery correctly
         SELECT  {self.addr_cast('reply_src_addr')},
                 probe_dst_addr,
                 probe_src_port,
                 probe_dst_port,
-                {DEFAULT_PROBE_TTL_COLUMN},
+                probe_ttl,
                 probe_protocol
-        FROM {table}
+        FROM {results_table(measurement_id)}
         WHERE {self.common_filters(subset)}
         """
 
@@ -174,32 +189,33 @@ class GetFlowsPerNode(Query):
 
 
 @dataclass(frozen=True)
-class GetDiscoveries(Query):
-    # NOTE: remove `AND NOT is_inter_round` when present in the link table
-
-    def query(self, table: str, subset: IPNetwork = DEFAULT_SUBSET) -> str:
+class GetDiscoveries(LinksQuery):
+    def statement(
+        self, measurement_id: str, subset: IPNetwork = UNIVERSE_SUBSET
+    ) -> str:
         return f"""
         SELECT
-            {self.addr_cast('probe_dst_prefix')},,
+            probe_dst_prefix,
             probe_protocol,
-            near_ttl,
             groupUniqArray(
                 (
                     {self.addr_cast('near_addr')},
                     {self.addr_cast('far_addr')}
                 )
             )
-        FROM {table}
-        WHERE NOT is_virtual AND NOT is_inter_round
-        GROUP BY (probe_dst_prefix, probe_protocol, near_ttl)
+        FROM {links_table(measurement_id)}
+        WHERE {self.filters(subset)}
+        GROUP BY (probe_dst_prefix, probe_protocol)
         """
 
 
 @dataclass(frozen=True)
-class GetDiscoveriesPerPrefix(Query):
+class GetDiscoveriesPerPrefix(LinksQuery):
     # NOTE: remove `AND NOT is_inter_round` when present in the link table
 
-    def query(self, table: str, subset: IPNetwork = DEFAULT_SUBSET) -> str:
+    def statement(
+        self, measurement_id: str, subset: IPNetwork = UNIVERSE_SUBSET
+    ) -> str:
         return f"""
         SELECT
             {self.addr_cast('probe_dst_prefix')},,
@@ -209,17 +225,19 @@ class GetDiscoveriesPerPrefix(Query):
                     {self.addr_cast('far_addr')}
                 )
             )
-        FROM {table}
+        FROM {links_table(measurement_id)}
         WHERE NOT is_virtual AND NOT is_inter_round
         GROUP BY (probe_dst_prefix)
         """
 
 
 @dataclass(frozen=True)
-class GetOneFLowPerLink(Query):
+class GetOneFLowPerLink(LinksQuery):
     # NOTE: remove `AND NOT is_inter_round` when present in the link table
 
-    def query(self, table: str, subset: IPNetwork = DEFAULT_SUBSET) -> str:
+    def statement(
+        self, measurement_id: str, subset: IPNetwork = UNIVERSE_SUBSET
+    ) -> str:
         return f"""
         SELECT
             (CAST(near_addr AS String), CAST(far_addr AS String)),
@@ -232,7 +250,7 @@ class GetOneFLowPerLink(Query):
                     probe_protocol
                 )
             )[1]
-        FROM {table}
+        FROM {links_table(measurement_id)}
         WHERE NOT is_virtual AND NOT is_partial AND NOT is_inter_round
         GROUP BY (near_addr, far_addr)
         """
