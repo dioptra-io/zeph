@@ -4,11 +4,12 @@ import ipaddress
 import radix
 
 from mrtparse import Reader, MRT_T, TD_V2_ST, TD_ST
+from pathlib import Path
 
 
-def create_excluded_radix(excluded_filepath):
+def create_excluded_radix(excluded_filepath: Path):
     tree = radix.Radix()
-    with open(excluded_filepath) as fd:
+    with excluded_filepath.open("r") as fd:
         prefixes = fd.readlines()
 
     for prefix in prefixes:
@@ -37,12 +38,12 @@ def is_overlap(radix, preset, prefix):
     return f in bgp_prefixes
 
 
-def create_bgp_radix(mrt_file_path, excluded_filepath=None):
+def create_bgp_radix(mrt_file_path: Path, excluded_filepath: Path = None):
     rtree = radix.Radix()
     if excluded_filepath:
         excluded_tree = create_excluded_radix(excluded_filepath)
 
-    r = Reader(mrt_file_path)
+    r = Reader(str(mrt_file_path))
     while True:
         try:
             m = r.next()
@@ -74,6 +75,7 @@ def create_bgp_radix(mrt_file_path, excluded_filepath=None):
 
 
 def create_bgp_prefixes(radix):
+    """Create a list of list of /24 prefixes."""
     bgp_prefixes = list(radix)
     total_prefixes = []
 
