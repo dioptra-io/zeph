@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-
 from diamond_miner.queries.fragments import IPNetwork
 from diamond_miner.queries.query import (
     UNIVERSE_SUBSET,

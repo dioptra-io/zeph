@@ -215,7 +215,7 @@ class AbstractEpsilonSelector(AbstractSelector):
         prefixes_exploitation = set(rank[:n_prefixes_exploitation])
 
         # Add random prefixes until the budget is completely burned
-        return prefixes_exploitation, self._select_random(
+        return prefixes_exploitation.copy(), self._select_random(
             agent_uuid, budget, preset=prefixes_exploitation
         )
 
