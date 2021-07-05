@@ -85,7 +85,7 @@ def create_bgp_prefixes(radix):
             prefixes = [
                 p
                 for p in ipaddress.ip_network(bgp_prefix).subnets(new_prefix=24)
-                if not p.is_private
+                if not p.is_private and p.prefixlen == 24
             ]
             if prefixes:
                 total_prefixes.append(prefixes)

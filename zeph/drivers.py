@@ -47,6 +47,7 @@ def adaptive_driver(
     url,
     username,
     password,
+    tag,
     tool,
     protocol,
     min_ttl,
@@ -55,7 +56,6 @@ def adaptive_driver(
     compute_budget,
     logger,
     exploitation_only=False,
-    selected_agents=None,
     dry_run=False,
 ):
     """
@@ -64,16 +64,19 @@ def adaptive_driver(
 
     headers = get_token(url, username, password)
 
-    logger.debug("Clean targets")
-    req = requests.get(url + "/targets/", headers=headers)
-    if req.status_code != 200:
-        logger.error("Unable to get targets list")
-        return (None, None, None)
-    for target in req.json()["results"]:
-        if target["key"].startswith("zeph__"):
-            req = requests.delete(url + f"/targets/{target['key']}", headers=headers)
-            if req.status_code != 200:
-                logger.error(f"Impossible to remove target `{target['key']}`")
+    if not dry_run:
+        logger.debug("Clean targets")
+        req = requests.get(url + "/targets/", headers=headers)
+        if req.status_code != 200:
+            logger.error("Unable to get targets list")
+            return (None, None, None)
+        for target in req.json()["results"]:
+            if target["key"].startswith("zeph__"):
+                req = requests.delete(
+                    url + f"/targets/{target['key']}", headers=headers
+                )
+                if req.status_code != 200:
+                    logger.error(f"Impossible to remove target `{target['key']}`")
 
     logger.debug("Get agents")
     req = requests.get(url + "/agents/", headers=headers)
@@ -81,17 +84,17 @@ def adaptive_driver(
         logger.error("Unable to get agents")
         return (None, None, None)
 
+    selected_agents = [
+        a for a in req.json()["results"] if tag in a["parameters"]["agent_tags"]
+    ]
+
     logger.debug("Upload agents targets prefixes")
     agents = []
 
     exploitation_per_agent = {}
     prefixes_per_agent = {}
 
-    for agent in req.json()["results"]:
-
-        if selected_agents is not None and agent["uuid"] not in selected_agents:
-            continue
-
+    for agent in selected_agents:
         probing_rate = agent["parameters"]["max_probing_rate"]
 
         budget, n_round = compute_budget(probing_rate)
@@ -161,19 +164,20 @@ def adaptive_driver(
 # --- shared driver
 
 
-def get_agent_budget(url, username, password, selected_agents, compute_budget):
+def get_agent_budget(url, username, password, tag, compute_budget):
     headers = get_token(url, username, password)
     req = requests.get(url + "/agents/", headers=headers)
     if req.status_code != 200:
         return None, None
 
+    selected_agents = [
+        a for a in req.json()["results"] if tag in a["parameters"]["agent_tags"]
+    ]
+
     agent_budget = {}
     agent_round = {}
-    for agent in req.json()["results"]:
+    for agent in selected_agents:
         probing_rate = agent["parameters"]["max_probing_rate"]
-
-        if selected_agents is not None and agent["uuid"] not in selected_agents:
-            continue
 
         budget, n_round = compute_budget(probing_rate)
         if budget == 0:
@@ -197,7 +201,6 @@ def shared_driver(
     agent_budget,
     agent_round,
     logger,
-    selected_agents=None,
     dry_run=False,
 ):
     """
@@ -205,19 +208,21 @@ def shared_driver(
     """
     headers = get_token(url, username, password)
 
-    logger.debug("Clean targets")
-    req = requests.get(url + "/targets/", headers=headers)
-    if req.status_code != 200:
-        print(req.text)
-        logger.error("Unable to get targets list")
-        return (None, None, None)
-
-    for target in req.json()["results"]:
-        if target["key"].startswith("ark__"):
-            req = requests.delete(url + f"/targets/{target['key']}", headers=headers)
-            if req.status_code != 200:
-                logger.error(f"Impossible to remove target `{target['key']}`")
-                return (None, None, None)
+    if not dry_run:
+        logger.debug("Clean targets")
+        req = requests.get(url + "/targets/", headers=headers)
+        if req.status_code != 200:
+            print(req.text)
+            logger.error("Unable to get targets list")
+            return (None, None, None)
+        for target in req.json()["results"]:
+            if target["key"].startswith("shared__"):
+                req = requests.delete(
+                    url + f"/targets/{target['key']}", headers=headers
+                )
+                if req.status_code != 200:
+                    logger.error(f"Impossible to remove target `{target['key']}`")
+                    return (None, None, None)
 
     logger.debug("Get agents")
     req = requests.get(url + "/agents/", headers=headers)
@@ -230,10 +235,6 @@ def shared_driver(
     prefixes_per_agent = {}
 
     for agent_uuid, budget in agent_budget.items():
-
-        if selected_agents is not None and agent_uuid not in selected_agents:
-            continue
-
         if budget is None:
             target_file = "full.csv"
         else:
@@ -281,6 +282,7 @@ def shared_driver(
         headers=headers,
     )
     if req.status_code != 201:
+        logger.error(req.text)
         logger.error("Unable to launch measurement")
         return (None, None, None)
 
