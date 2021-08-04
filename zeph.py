@@ -54,7 +54,7 @@ def default_compute_budget(probing_rate: int):
     hour/35 * 100 * probing_rate = n_prefixes
     """
     if probing_rate >= 100_000:
-        return 0, 6
+        return None, 6
     if probing_rate == 10_000:
         return 400_000, 10
     elif probing_rate == 2_000:

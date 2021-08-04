@@ -52,20 +52,21 @@ class AbstractSelector(ABC):
 
             bgp_prefixes = self.authorized_prefixes
             random.shuffle(bgp_prefixes)
-            bgp_prefixes = iter(bgp_prefixes)
+            bgp_prefixes_iter = iter(bgp_prefixes)
+            bgp_prefixes_flat = iter(list(itertools.chain(*self.authorized_prefixes)))
 
         while len(preset) < budget:
             if not bgp_prefixes:
                 prefix = self._pick_random(agent)
-            else:
+            elif bgp_prefixes and self.bgp_awareness:
                 try:
-                    next_bgp_prefix = next(bgp_prefixes)
+                    next_bgp_prefix = next(bgp_prefixes_iter)
                 except StopIteration:
                     # We browsed all the BGP prefixes,
                     # so we go over to pick other /24 prefixes of same supersets
                     bgp_prefixes = self.authorized_prefixes
                     random.shuffle(bgp_prefixes)
-                    bgp_prefixes = iter(bgp_prefixes)
+                    bgp_prefixes_iter = iter(bgp_prefixes)
                     spread = False
                     continue
 
@@ -75,6 +76,8 @@ class AbstractSelector(ABC):
                 prefix = random.choice(next_bgp_prefix)
                 if prefix.prefixlen != 24:
                     continue
+            else:
+                prefix = next(bgp_prefixes_flat)
 
             preset.add(prefix)
         return list(preset)
@@ -107,7 +110,7 @@ class RandomSharedSelector(AbstractSelector):
         return agent_prefixes
 
     def select(self, agent_uuid: str):
-        return self.rank_per_agent[agent_uuid]
+        return [], self.rank_per_agent[agent_uuid]
 
 
 class AbstractEpsilonSelector(AbstractSelector):
@@ -117,6 +120,7 @@ class AbstractEpsilonSelector(AbstractSelector):
         database_name,
         epsilon,
         authorized_prefixes=None,
+        bgp_awareness=True,
     ):
         self.database_host = database_host
         self.database_name = database_name
@@ -125,6 +129,7 @@ class AbstractEpsilonSelector(AbstractSelector):
         self.epsilon = epsilon
 
         self.authorized_prefixes = authorized_prefixes
+        self.bgp_awareness = bgp_awareness
 
         self._discoveries = {}
         self.rank_per_agent = {}
@@ -347,3 +352,96 @@ class EpsilonDFGSelector(AbstractEpsilonSelector):
                 covered.update(subsets[subset])
 
         return rank_per_agent
+
+
+class EpsilonSharedDFGSelector(EpsilonDFGSelector):
+    def __init__(
+        self,
+        database_host,
+        database_name,
+        epsilon,
+        agent_budget,
+        authorized_prefixes=None,
+        bgp_awareness=True,
+    ) -> None:
+        self.database_host = database_host
+        self.database_name = database_name
+        self.database_url = f"clickhouse://{database_host}/{database_name}"
+
+        self.epsilon = epsilon
+
+        self.authorized_prefixes = authorized_prefixes
+        self.bgp_awareness = bgp_awareness
+
+        self._discoveries = {}
+        self.rank_per_agent = {}
+
+        self.agent_budget = agent_budget
+        self.dispatch_per_agent = {}
+
+    def compute_dispatch(self):
+        # Get the rank stripped for each agent
+        rank_stripped_per_agent = {}
+        for agent, budget in self.agent_budget.items():
+            budget = self.agent_budget[agent]
+            if not self.rank_per_agent or not self.rank_per_agent.get(agent):
+                rank_stripped_per_agent[agent] = set()
+                continue
+
+            rank = self.rank_per_agent.get(agent)
+            n_prefixes_exploration = int(self.epsilon * budget)
+            n_prefixes_exploitation = budget - n_prefixes_exploration
+            rank_stripped_per_agent[agent] = set(rank[:n_prefixes_exploitation])
+
+        prefixes = list(itertools.chain(*self.authorized_prefixes))
+        random.shuffle(prefixes)
+
+        unused_prefixes = []
+        for prefix in prefixes:
+            for agent_rank in rank_stripped_per_agent.values():
+                if prefix in agent_rank:
+                    break
+            else:
+                unused_prefixes.append(prefix)
+
+        prefixes_it = iter(unused_prefixes)
+
+        all_prefix_used = False
+        prefix = next(prefixes_it)
+        n_agents = len(self.agent_budget)
+        agent_count = 0
+        for agent in itertools.cycle(list(self.agent_budget)):
+            if all_prefix_used:
+                break
+            if len(rank_stripped_per_agent[agent]) >= self.agent_budget[agent]:
+                agent_count += 1
+                if agent_count >= n_agents:
+                    # We exhaust all budget agents
+                    all_prefix_used = True
+                continue
+
+            rank_stripped_per_agent[agent].add(prefix)
+            try:
+                prefix = next(prefixes_it)
+                agent_count = 0
+            except StopIteration:
+                all_prefix_used = True
+
+        return rank_stripped_per_agent
+
+    def select(self, agent_uuid: str):
+        if not self.rank_per_agent:
+            return [], self.dispatch_per_agent[agent_uuid]
+
+        budget = self.agent_budget[agent_uuid]
+
+        # Compute the number of prefixes for exploration [eB] / exploitation [(1-e)B]
+        n_prefixes_exploration = int(self.epsilon * budget)
+        n_prefixes_exploitation = budget - n_prefixes_exploration
+
+        # Pick the (1-e)B prefix with the best reward
+        rank = self.rank_per_agent[agent_uuid]
+        prefixes_exploitation = set(rank[:n_prefixes_exploitation])
+
+        # Add random prefixes until the budget is completely burned
+        return prefixes_exploitation.copy(), self.dispatch_per_agent[agent_uuid]

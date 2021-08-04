@@ -19,7 +19,7 @@ class GetNodeDiscoveries(ResultsQuery):
         SELECT
             probe_dst_prefix,
             probe_protocol,
-            groupUniqArray({self.addr_cast('reply_src_addr')})
+            groupUniqArray({self._addr_cast('reply_src_addr')})
         FROM {results_table(measurement_id)}
         WHERE {self.filters(subset)}
         GROUP BY (probe_dst_prefix, probe_protocol)
@@ -37,8 +37,8 @@ class GetLinkDiscoveries(LinksQuery):
             probe_protocol,
             groupUniqArray(
                 (
-                    {self.addr_cast('near_addr')},
-                    {self.addr_cast('far_addr')}
+                    {self._addr_cast('near_addr')},
+                    {self._addr_cast('far_addr')}
                 )
             )
         FROM {links_table(measurement_id)}

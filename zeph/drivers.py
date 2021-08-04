@@ -3,6 +3,9 @@ import requests
 import time
 
 
+sleep_time = 30
+
+
 def get_token(url, username, password):
     res = requests.post(
         url + "/profile/token",
@@ -15,9 +18,13 @@ def get_token(url, username, password):
 
 
 def check_measurement_finished(url, username, password, measurement_uuid):
-    headers = get_token(url, username, password)
-    req = requests.get(url + f"/measurements/{measurement_uuid}", headers=headers)
-    return req.json()["state"] == "finished"
+    try:
+        headers = get_token(url, username, password)
+        req = requests.get(url + f"/measurements/{measurement_uuid}", headers=headers)
+        res = req.json()["state"] == "finished"
+    except Exception:
+        return False
+    return res
 
 
 def upload_prefixes_list(url, filename, prefixes_list, headers):
@@ -135,7 +142,7 @@ def adaptive_driver(
                 },
             }
         )
-        time.sleep(1)
+        time.sleep(sleep_time)
 
     if dry_run:
         return (None, exploitation_per_agent, prefixes_per_agent)
@@ -232,17 +239,19 @@ def shared_driver(
 
     logger.debug("Upload agents targets prefixes")
     agents = []
+    exploitation_per_agent = {}
     prefixes_per_agent = {}
 
     for agent_uuid, budget in agent_budget.items():
         if budget is None:
             target_file = "full.csv"
         else:
-            prefixes = selector.select(agent_uuid)
+            exploitation, total = selector.select(agent_uuid)
             prefixes_list = [
-                (str(p), protocol, str(min_ttl), str(max_ttl)) for p in prefixes
+                (str(p), protocol, str(min_ttl), str(max_ttl)) for p in total
             ]
-            prefixes_per_agent[agent_uuid] = prefixes_list
+            exploitation_per_agent[agent_uuid] = exploitation
+            prefixes_per_agent[agent_uuid] = total
             target_file = f"zeph__{agent_uuid}.csv"
 
             # Upload the prefixes-list
@@ -266,10 +275,10 @@ def shared_driver(
                 },
             }
         )
-        time.sleep(1)
+        time.sleep(sleep_time)
 
     if dry_run:
-        return (None, None, prefixes_per_agent)
+        return (None, exploitation_per_agent, prefixes_per_agent)
 
     logger.debug("Launch the measurement")
     req = requests.post(
@@ -290,4 +299,4 @@ def shared_driver(
     logger.debug(f"Measurement UUID is `{uuid}`")
     logger.debug("End")
 
-    return (uuid, None, prefixes_per_agent)
+    return (uuid, exploitation_per_agent, prefixes_per_agent)
