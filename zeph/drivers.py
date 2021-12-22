@@ -1,14 +1,14 @@
+"""API drivers."""
+
 import io
-import requests
 import time
 
+import requests
 
-sleep_time = 30
 
-
-def get_token(url, username, password):
+def create_auth_header(url, username, password):
     res = requests.post(
-        url + "/profile/token",
+        url + "/auth/jwt/login/",
         data={
             "username": username,
             "password": password,
@@ -17,14 +17,12 @@ def get_token(url, username, password):
     return {"Authorization": f"Bearer {res.json()['access_token']}"}
 
 
-def check_measurement_finished(url, username, password, measurement_uuid):
-    try:
-        headers = get_token(url, username, password)
-        req = requests.get(url + f"/measurements/{measurement_uuid}", headers=headers)
-        res = req.json()["state"] == "finished"
-    except Exception:
-        return False
-    return res
+def get_previous_measurement_agents(url, measurement_uuid, headers):
+    res = requests.get(url + f"/measurements/{measurement_uuid}", headers=headers)
+    agents_uuid = []
+    for data in res.json()["agents"]:
+        agents_uuid.append(data["uuid"])
+    return agents_uuid
 
 
 def upload_prefixes_list(url, filename, prefixes_list, headers):
@@ -47,10 +45,7 @@ def upload_prefixes_list(url, filename, prefixes_list, headers):
     return False
 
 
-# --- adaptive driver
-
-
-def adaptive_driver(
+def iris_driver(
     url,
     username,
     password,
@@ -62,16 +57,25 @@ def adaptive_driver(
     selector,
     compute_budget,
     logger,
+    clean_targets=True,
     exploitation_only=False,
     dry_run=False,
 ):
     """
-    Zeph driver.
+    Iris driver.
+
+    Perform the full procedure for creating a measurement to the Iris platform.
+
+    * Get the agents
+    * Create the target list of each agent based on the selector
+    * Upload the target list via the API
+    * Launch the measurement
     """
 
-    headers = get_token(url, username, password)
+    headers = create_auth_header(url, username, password)
 
-    if not dry_run:
+    # Clean the targets of previous measurements
+    if not dry_run and clean_targets:
         logger.debug("Clean targets")
         req = requests.get(url + "/targets/", headers=headers)
         if req.status_code != 200:
@@ -85,6 +89,7 @@ def adaptive_driver(
                 if req.status_code != 200:
                     logger.error(f"Impossible to remove target `{target['key']}`")
 
+    # Select the agents to use during the measurement based on the agent tags
     logger.debug("Get agents")
     req = requests.get(url + "/agents/", headers=headers)
     if req.status_code != 200:
@@ -95,6 +100,7 @@ def adaptive_driver(
         a for a in req.json()["results"] if tag in a["parameters"]["agent_tags"]
     ]
 
+    # Upload the targets list created using the selector
     logger.debug("Upload agents targets prefixes")
     agents = []
 
@@ -106,35 +112,32 @@ def adaptive_driver(
 
         budget, n_round = compute_budget(probing_rate)
         if budget == 0:
+            # Skip this agent because it has no budget
             continue
 
-        if budget is None:
-            target_file = "full.csv"
-        else:
-            exploitation, total = selector.select(
-                agent["uuid"], budget=budget, exploitation_only=exploitation_only
+        # Select the prefixes with the selector
+        exploitation, total = selector.select(
+            agent["uuid"], budget=budget, exploitation_only=exploitation_only
+        )
+        prefixes_list = [(str(p), protocol, str(min_ttl), str(max_ttl)) for p in total]
+        exploitation_per_agent[agent["uuid"]] = exploitation
+        prefixes_per_agent[agent["uuid"]] = total
+        target_file_name = f"zeph__{agent['uuid']}.csv"
+
+        # Upload the prefixes-list
+        if not dry_run:
+            is_success = upload_prefixes_list(
+                url, target_file_name, prefixes_list, headers
             )
-            prefixes_list = [
-                (str(p), protocol, str(min_ttl), str(max_ttl)) for p in total
-            ]
-            exploitation_per_agent[agent["uuid"]] = exploitation
-            prefixes_per_agent[agent["uuid"]] = total
-            target_file = f"zeph__{agent['uuid']}.csv"
+            if not is_success:
+                logger.error("Impossible to updoad prefixes list file")
+                return (None, None, None)
 
-            # Upload the prefixes-list
-            if not dry_run:
-                is_success = upload_prefixes_list(
-                    url, target_file, prefixes_list, headers
-                )
-                if not is_success:
-                    logger.error("Impossible to updoad prefixes list file")
-                    return (None, None, None)
-
-        # Add the prefixes-list to the agent specific parameters
+        # Add the prefixes-list to the agent  parameters
         agents.append(
             {
                 "uuid": agent["uuid"],
-                "target_file": target_file,
+                "target_file": target_file_name,
                 "tool_parameters": {
                     "max_round": n_round,
                     "flow_mapper": "RandomFlowMapper",
@@ -142,11 +145,12 @@ def adaptive_driver(
                 },
             }
         )
-        time.sleep(sleep_time)
+        time.sleep(30)
 
     if dry_run:
         return (None, exploitation_per_agent, prefixes_per_agent)
 
+    # Launch the measurement
     logger.debug("Launch the measurement")
     req = requests.post(
         url + "/measurements/",
@@ -158,140 +162,6 @@ def adaptive_driver(
         headers=headers,
     )
     if req.status_code != 201:
-        logger.error("Unable to launch measurement")
-        return (None, None, None)
-
-    uuid = req.json()["uuid"]
-    logger.debug(f"Measurement UUID is `{uuid}`")
-    logger.debug("End")
-
-    return (uuid, exploitation_per_agent, prefixes_per_agent)
-
-
-# --- shared driver
-
-
-def get_agent_budget(url, username, password, tag, compute_budget):
-    headers = get_token(url, username, password)
-    req = requests.get(url + "/agents/", headers=headers)
-    if req.status_code != 200:
-        return None, None
-
-    selected_agents = [
-        a for a in req.json()["results"] if tag in a["parameters"]["agent_tags"]
-    ]
-
-    agent_budget = {}
-    agent_round = {}
-    for agent in selected_agents:
-        probing_rate = agent["parameters"]["max_probing_rate"]
-
-        budget, n_round = compute_budget(probing_rate)
-        if budget == 0:
-            continue
-
-        agent_budget[agent["uuid"]] = budget
-        agent_round[agent["uuid"]] = n_round
-
-    return agent_budget, agent_round
-
-
-def shared_driver(
-    url,
-    username,
-    password,
-    tool,
-    protocol,
-    min_ttl,
-    max_ttl,
-    selector,
-    agent_budget,
-    agent_round,
-    logger,
-    dry_run=False,
-):
-    """
-    Shared driver.
-    """
-    headers = get_token(url, username, password)
-
-    if not dry_run:
-        logger.debug("Clean targets")
-        req = requests.get(url + "/targets/", headers=headers)
-        if req.status_code != 200:
-            print(req.text)
-            logger.error("Unable to get targets list")
-            return (None, None, None)
-        for target in req.json()["results"]:
-            if target["key"].startswith("shared__"):
-                req = requests.delete(
-                    url + f"/targets/{target['key']}", headers=headers
-                )
-                if req.status_code != 200:
-                    logger.error(f"Impossible to remove target `{target['key']}`")
-                    return (None, None, None)
-
-    logger.debug("Get agents")
-    req = requests.get(url + "/agents/", headers=headers)
-    if req.status_code != 200:
-        logger.error("Unable to get agents")
-        return (None, None, None)
-
-    logger.debug("Upload agents targets prefixes")
-    agents = []
-    exploitation_per_agent = {}
-    prefixes_per_agent = {}
-
-    for agent_uuid, budget in agent_budget.items():
-        if budget is None:
-            target_file = "full.csv"
-        else:
-            exploitation, total = selector.select(agent_uuid)
-            prefixes_list = [
-                (str(p), protocol, str(min_ttl), str(max_ttl)) for p in total
-            ]
-            exploitation_per_agent[agent_uuid] = exploitation
-            prefixes_per_agent[agent_uuid] = total
-            target_file = f"zeph__{agent_uuid}.csv"
-
-            # Upload the prefixes-list
-            if not dry_run:
-                is_success = upload_prefixes_list(
-                    url, target_file, prefixes_list, headers
-                )
-                if not is_success:
-                    logger.error("Impossible to updoad prefixes list file")
-                    return (None, None, None)
-
-        # Add the prefixes-list to the agent specific parameters
-        agents.append(
-            {
-                "uuid": agent_uuid,
-                "target_file": target_file,
-                "tool_parameters": {
-                    "max_round": agent_round[agent_uuid],
-                    "flow_mapper": "RandomFlowMapper",
-                    "flow_mapper_kwargs": {"seed": 2021},
-                },
-            }
-        )
-        time.sleep(sleep_time)
-
-    if dry_run:
-        return (None, exploitation_per_agent, prefixes_per_agent)
-
-    logger.debug("Launch the measurement")
-    req = requests.post(
-        url + "/measurements/",
-        json={
-            "tool": tool,
-            "agents": agents,
-            "tags": ["test"],
-        },
-        headers=headers,
-    )
-    if req.status_code != 201:
-        logger.error(req.text)
         logger.error("Unable to launch measurement")
         return (None, None, None)
 

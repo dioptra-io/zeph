@@ -3,10 +3,10 @@ from dataclasses import dataclass
 from diamond_miner.queries.fragments import IPNetwork
 from diamond_miner.queries.query import (
     UNIVERSE_SUBSET,
-    ResultsQuery,
     LinksQuery,
-    results_table,
+    ResultsQuery,
     links_table,
+    results_table,
 )
 
 
@@ -19,7 +19,7 @@ class GetNodeDiscoveries(ResultsQuery):
         SELECT
             probe_dst_prefix,
             probe_protocol,
-            groupUniqArray({self._addr_cast('reply_src_addr')})
+            groupUniqArray(reply_src_addr) as discoveries
         FROM {results_table(measurement_id)}
         WHERE {self.filters(subset)}
         GROUP BY (probe_dst_prefix, probe_protocol)
@@ -35,12 +35,7 @@ class GetLinkDiscoveries(LinksQuery):
         SELECT
             probe_dst_prefix,
             probe_protocol,
-            groupUniqArray(
-                (
-                    {self._addr_cast('near_addr')},
-                    {self._addr_cast('far_addr')}
-                )
-            )
+            groupUniqArray((near_addr,far_addr)) AS discoveries
         FROM {links_table(measurement_id)}
         WHERE {self.filters(subset)}
         GROUP BY (probe_dst_prefix, probe_protocol)
