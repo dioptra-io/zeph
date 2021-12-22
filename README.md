@@ -1,6 +1,6 @@
 # 🌬️ Zeph
 
-> Zeph is a reinforcement learning based algorithm for selecting prefixes to probe based on previous measurement in order to maximize the overall discoveries of nodes and links. Zeph can be used on top of Iris system.
+> Zeph is a reinforcement learning based algorithm for selecting prefixes to probe based on previous measurement in order to maximize the overall discoveries of nodes and links. Zeph can be used on top of [Iris](https://iris.dioptra.io) system.
 
 
 ## 🚀 Quickstart
