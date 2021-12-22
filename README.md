@@ -8,7 +8,7 @@
 
 Zeph dispose of a command line interface to configure and run the algorithm.
 
-```bash
+```
 Usage: zeph.py [OPTIONS]
 
 Options:
