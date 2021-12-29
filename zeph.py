@@ -8,12 +8,11 @@ import logging
 import pickle
 from math import floor
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 import typer
 
-from zeph.bgp import create_bgp_prefixes, create_bgp_radix
 from zeph.drivers import (
     create_auth_header,
     get_previous_measurement_agents,
@@ -45,9 +44,9 @@ def default_compute_budget(probing_rate: int):
 def create_selector(
     database_url: str,
     epsilon: float,
-    previous_measurement_uuid: UUID,
-    previous_agents_uuid: List[UUID],
     bgp_prefixes: List[List[str]],
+    previous_measurement_uuid: Optional[UUID] = None,
+    previous_agents_uuid: Optional[List[UUID]] = None,
 ):
     """Create prefix selector."""
     selector = EpsilonDFGSelector(
@@ -67,7 +66,7 @@ def create_selector(
     return selector
 
 
-def main(
+def zeph(
     api_url: str = typer.Option("https://api.iris.dioptra.io"),
     api_username: str = typer.Option(...),
     api_password: str = typer.Option(...),
@@ -78,35 +77,20 @@ def main(
     protocol: str = typer.Option("icmp"),
     min_ttl: int = typer.Option(2),
     max_ttl: int = typer.Option(32),
-    previous_measurement_uuid: UUID = typer.Option(None),
     epsilon: float = typer.Option(0.1),
+    previous_measurement_uuid: UUID = typer.Option(None),
+    fixed_budget: int = typer.Option(None),
     dry_run: bool = False,
 ):
 
-    logger.info("Create BGP prefix list")
+    logger.info("Import BGP prefix list")
     with open(bgp_prefixes_path, "rb") as fd:
         bgp_prefixes = pickle.load(fd)
 
-    # if mrt_file_path is not None:
-    #     logger.info("Create BGP radix tree")
-    #     authorized_radix = create_bgp_radix(
-    #         mrt_file_path,
-    #         excluded_filepath=excluded_prefixes_path,
-    #     )
-    #     bgp_prefixes = create_bgp_prefixes(authorized_radix)
-    #     # Save the BGP prefixes for later use if `bgp_prefixes_path` is set
-    #     if bgp_prefixes_path is not None:
-    #         with open(bgp_prefixes_path, "wb") as fd:
-    #             pickle.dump(bgp_prefixes, fd)
-    # elif bgp_prefixes_path is not None:
-    #     with open(bgp_prefixes_path, "rb") as fd:
-    #         bgp_prefixes = pickle.load(fd)
-    # else:
-    #     raise ValueError("Supply either BGP prefix path or MRT file path")
-
     # Get previous measurement agents
-    logger.info("Get previous measurement agents")
+    agents_uuid = None
     if previous_measurement_uuid:
+        logger.info("Get previous measurement agents")
         headers = create_auth_header(api_url, api_username, api_password)
         agents_uuid = get_previous_measurement_agents(
             api_url, previous_measurement_uuid, headers
@@ -116,9 +100,9 @@ def main(
     selector = create_selector(
         database_url,
         epsilon,
+        bgp_prefixes,
         previous_measurement_uuid,
         agents_uuid,
-        bgp_prefixes,
     )
 
     # Launch the measurement using Iris
@@ -132,7 +116,7 @@ def main(
         min_ttl,
         max_ttl,
         selector,
-        default_compute_budget,
+        default_compute_budget if not fixed_budget else lambda _: (fixed_budget, 10),
         logger,
         clean_targets=True,
         exploitation_only=False,
@@ -141,4 +125,4 @@ def main(
 
 
 if __name__ == "__main__":
-    typer.run(main)
+    typer.run(zeph)

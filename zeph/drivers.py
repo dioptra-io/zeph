@@ -1,7 +1,6 @@
 """API drivers."""
 
 import io
-import time
 
 import requests
 
@@ -57,6 +56,7 @@ def iris_driver(
     selector,
     compute_budget,
     logger,
+    tags=["test"],
     clean_targets=True,
     exploitation_only=False,
     dry_run=False,
@@ -101,7 +101,7 @@ def iris_driver(
     ]
 
     # Upload the targets list created using the selector
-    logger.debug("Upload agents targets prefixes")
+    logger.debug("Create agents targets prefixes")
     agents = []
 
     exploitation_per_agent = {}
@@ -119,7 +119,11 @@ def iris_driver(
         exploitation, total = selector.select(
             agent["uuid"], budget=budget, exploitation_only=exploitation_only
         )
-        prefixes_list = [(str(p), protocol, str(min_ttl), str(max_ttl)) for p in total]
+
+        # Target row format: prefix,protocol,min_ttl,max_ttl,n_initial_flows
+        prefixes_list = [
+            (str(p), protocol, str(min_ttl), str(max_ttl), str(6)) for p in total
+        ]
         exploitation_per_agent[agent["uuid"]] = exploitation
         prefixes_per_agent[agent["uuid"]] = total
         target_file_name = f"zeph__{agent['uuid']}.csv"
@@ -145,7 +149,6 @@ def iris_driver(
                 },
             }
         )
-        time.sleep(30)
 
     if dry_run:
         return (None, exploitation_per_agent, prefixes_per_agent)
@@ -157,12 +160,13 @@ def iris_driver(
         json={
             "tool": tool,
             "agents": agents,
-            "tags": ["test"],
+            "tags": tags,
         },
         headers=headers,
     )
     if req.status_code != 201:
         logger.error("Unable to launch measurement")
+        logger.error(req.text)
         return (None, None, None)
 
     uuid = req.json()["uuid"]
