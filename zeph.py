@@ -78,8 +78,8 @@ def zeph(
     min_ttl: int = typer.Option(2),
     max_ttl: int = typer.Option(32),
     epsilon: float = typer.Option(0.1),
-    previous_measurement_uuid: UUID = typer.Option(None),
-    fixed_budget: int = typer.Option(None),
+    previous_measurement_uuid: Optional[UUID] = typer.Option(None),
+    fixed_budget: Optional[int] = typer.Option(None),
     dry_run: bool = False,
 ):
 
