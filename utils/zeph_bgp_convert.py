@@ -1,3 +1,11 @@
+"""
+Convert a routeviews RIB file to a list of list of /24 prefixes
+that belong to the same announced prefix.
+
+TODO: IPv6 support
+"""
+
+
 import ipaddress
 import pickle
 from pathlib import Path

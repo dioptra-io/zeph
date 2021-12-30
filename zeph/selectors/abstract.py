@@ -39,6 +39,7 @@ class AbstractSelector(ABC):
         if total_prefixes < budget:
             for prefixes in self.authorized_prefixes:
                 for prefix in prefixes:
+                    # TODO IPv6 support
                     if prefix.prefixlen != 24:
                         continue
                     preset.add(prefix)
@@ -68,6 +69,7 @@ class AbstractSelector(ABC):
                     continue
 
                 prefix = random.choice(next_bgp_prefix)
+                # TODO IPv6 support
                 if prefix.prefixlen != 24:
                     continue
             else:
