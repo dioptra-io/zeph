@@ -13,7 +13,11 @@ def create_auth_header(url, username, password):
             "password": password,
         },
     )
-    return {"Authorization": f"Bearer {res.json()['access_token']}"}
+    try:
+        return {"Authorization": f"Bearer {res.json()['access_token']}"}
+    except KeyError:
+        print(res.text)
+        raise ValueError("Unable to get the token")
 
 
 def get_previous_measurement_agents(url, measurement_uuid, headers):
