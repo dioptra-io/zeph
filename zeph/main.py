@@ -1,10 +1,9 @@
 """
-Zeph CLI.
+Zeph.
 
 Communicate with Iris to perform measurements.
 """
 
-import logging
 import pickle
 from math import floor
 from pathlib import Path
@@ -18,17 +17,8 @@ from zeph.drivers import (
     get_previous_measurement_agents,
     iris_driver,
 )
+from zeph.logging import logger
 from zeph.selectors.epsilon import EpsilonDFGSelector
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-script_formatter = logging.Formatter(
-    "%(asctime)s :: SCRIPT :: %(levelname)s :: %(message)s"
-)
-stream_handler = logging.StreamHandler()
-stream_handler.setLevel(logging.DEBUG)
-stream_handler.setFormatter(script_formatter)
-logger.addHandler(stream_handler)
 
 
 def default_compute_budget(probing_rate: int):
@@ -122,7 +112,3 @@ def zeph(
         exploitation_only=False,
         dry_run=dry_run,
     )
-
-
-if __name__ == "__main__":
-    typer.run(zeph)
