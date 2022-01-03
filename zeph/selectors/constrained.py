@@ -13,7 +13,7 @@ from zeph.selectors.epsilon import EpsilonDFGSelector
 from zeph.selectors.random import RandomSelector
 
 
-class SharedRandomSelector(RandomSelector):
+class ConstraineddRandomSelector(RandomSelector):
     def __init__(self, agent_budget, authorized_prefixes) -> None:
         self.agent_budget = agent_budget
         self.authorized_prefixes = sorted(authorized_prefixes)
@@ -38,7 +38,7 @@ class SharedRandomSelector(RandomSelector):
         return [], self.rank_per_agent[agent_uuid]
 
 
-class SharedEpsilonDFGSelector(EpsilonDFGSelector):
+class ConstrainedEpsilonDFGSelector(EpsilonDFGSelector):
     def __init__(
         self,
         database_host,
