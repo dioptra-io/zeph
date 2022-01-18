@@ -5,7 +5,6 @@
 
 ## 🚀 Quickstart
 
-
 Zeph dispose of a command line interface to configure and run the algorithm.
 
 Fist create the python virtual environment:
@@ -45,7 +44,7 @@ Options:
   --help                          Show this message and exit.
 ```
 
-## Generate the BGP prefix file 
+## ✨ Generate the BGP prefix file 
 
 To work, Zeph needs to know the universe of BGP prefixes that it can probe. 
 You can create a BGP prefix file by downloading the latest rib from routeviews.org and then convert it into a pickle file.
@@ -72,7 +71,7 @@ Options:
   --help                          Show this message and exit.
   ```
 
-### Convert the rib to pickle file
+### Convert the RIB to pickle file
 
 Script: `utils/zeph_bgp_convert.py`
 
@@ -100,3 +99,7 @@ Options:
 
 ```
 ```
+
+## 🧑‍💻 Authors
+
+Iris is developed and maintained by the [Dioptra group](https://dioptra.io) at [Sorbonne Université](https://www.sorbonne-universite.fr) in Paris, France.
