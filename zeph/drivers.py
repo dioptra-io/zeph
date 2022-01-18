@@ -24,7 +24,7 @@ def get_previous_measurement_agents(url, measurement_uuid, headers):
     res = requests.get(url + f"/measurements/{measurement_uuid}", headers=headers)
     agents_uuid = []
     for data in res.json()["agents"]:
-        agents_uuid.append(data["uuid"])
+        agents_uuid.append(data["agent_uuid"])
     return agents_uuid
 
 
