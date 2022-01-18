@@ -71,7 +71,7 @@ Options:
   --help                          Show this message and exit.
   ```
 
-### Convert the rib to pickle file
+### Convert the RIB to pickle file
 
 Script: `utils/zeph_bgp_convert.py`
 
