@@ -99,3 +99,7 @@ Options:
 
 ```
 ```
+
+## 🧑‍💻 Authors
+
+Iris is developed and maintained by the [Dioptra group](https://dioptra.io) at [Sorbonne Université](https://www.sorbonne-universite.fr) in Paris, France.
