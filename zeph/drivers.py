@@ -20,6 +20,15 @@ def create_auth_header(url, username, password):
         raise ValueError("Unable to get the token")
 
 
+def get_database_url(url, headers):
+    """Get the database URL."""
+    req = requests.get(url + "/users/me/services", headers=headers)
+    if req.status_code != 200:
+        raise ValueError("Unable to get the database URL")
+    data = req.json()
+    return f"{data['chproxy_url']}&user={data['chproxy_username']}&password={data['chproxy_password']}"
+
+
 def get_previous_measurement_agents(url, measurement_uuid, headers):
     res = requests.get(url + f"/measurements/{measurement_uuid}", headers=headers)
     agents_uuid = []
