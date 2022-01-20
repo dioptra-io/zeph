@@ -22,6 +22,8 @@ def create_excluded_radix(excluded_filepath: Path):
         prefixes = fd.readlines()
 
     for prefix in prefixes:
+        if prefix.startswith("#"):
+            continue
         tree.add(prefix.strip())
     return tree
 
@@ -30,6 +32,11 @@ def create_bgp_radix(mrt_file_path: Path, excluded_filepath: Path = None):
     rtree = radix.Radix()
     if excluded_filepath:
         excluded_tree = create_excluded_radix(excluded_filepath)
+
+    TABLE_DUMP = MRT_T["TABLE_DUMP"]
+    TABLE_DUMP_V2 = MRT_T["TABLE_DUMP_V2"]
+    RIB_IPV4_UNICAST = TD_V2_ST["RIB_IPV4_UNICAST"]
+    AFI_IPv4 = TD_ST["AFI_IPv4"]
 
     r = Reader(str(mrt_file_path))
     while True:
@@ -42,22 +49,24 @@ def create_bgp_radix(mrt_file_path: Path, excluded_filepath: Path = None):
             continue
         prefix = "0.0.0.0/0"
         if (
-            m.data["type"][0] == MRT_T["TABLE_DUMP_V2"]
-            and m.data["subtype"][0] == TD_V2_ST["RIB_IPV4_UNICAST"]
+            next(iter(m.data["type"])) == TABLE_DUMP_V2
+            and next(iter(m.data["subtype"])) == RIB_IPV4_UNICAST
         ):
             prefix = m.data["prefix"] + "/" + str(m.data["prefix_length"])
         elif (
-            m.data["type"][0] == MRT_T["TABLE_DUMP"]
-            and m.data["subtype"][0] == TD_ST["AFI_IPv4"]
+            next(iter(m.data["type"])) == TABLE_DUMP
+            and next(iter(m.data["subtype"])) == AFI_IPv4
         ):
             prefix = m.data["prefix"] + "/" + str(m.data["prefix_length"])
 
         if prefix == "0.0.0.0/0":
             continue
+
         if excluded_filepath:
             f = excluded_tree.search_best(prefix)
             if f:
                 continue
+
         rtree.add(prefix)
     return rtree
 

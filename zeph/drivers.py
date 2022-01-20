@@ -29,6 +29,15 @@ def get_database_url(url, headers):
     return f"{data['chproxy_url']}&user={data['chproxy_username']}&password={data['chproxy_password']}"
 
 
+def get_agents(url, agents_tag, headers):
+    """Get the agents."""
+    req = requests.get(url + "/agents/", headers=headers)
+    if req.status_code != 200:
+        raise ValueError("Unable to get the token")
+
+    return [a for a in req.json()["results"] if agents_tag in a["parameters"]["tags"]]
+
+
 def get_previous_measurement_agents(url, measurement_uuid, headers):
     res = requests.get(url + f"/measurements/{measurement_uuid}", headers=headers)
     agents_uuid = []
@@ -57,11 +66,16 @@ def upload_prefixes_list(url, filename, prefixes_list, headers):
     return False
 
 
+def clean_targets(iris_url, agents_uuid, headers):
+    for agent_uuid in agents_uuid:
+        requests.delete(iris_url + f"/targets/{agent_uuid}", headers=headers)
+
+
 def iris_driver(
     url,
     username,
     password,
-    tag,
+    agents_tag,
     tool,
     protocol,
     min_ttl,
@@ -69,9 +83,9 @@ def iris_driver(
     selector,
     compute_budget,
     logger,
-    tags=["test"],
-    clean_targets=True,
+    measurement_tags=["test"],
     exploitation_only=False,
+    cleanup_targets=True,
     dry_run=False,
 ):
     """
@@ -87,31 +101,13 @@ def iris_driver(
 
     headers = create_auth_header(url, username, password)
 
-    # Clean the targets of previous measurements
-    if not dry_run and clean_targets:
-        logger.debug("Clean targets")
-        req = requests.get(url + "/targets/", headers=headers)
-        if req.status_code != 200:
-            logger.error("Unable to get targets list")
-            return (None, None, None)
-        for target in req.json()["results"]:
-            if target["key"].startswith("zeph__"):
-                req = requests.delete(
-                    url + f"/targets/{target['key']}", headers=headers
-                )
-                if req.status_code != 200:
-                    logger.error(f"Impossible to remove target `{target['key']}`")
-
     # Select the agents to use during the measurement based on the agent tags
     logger.debug("Get agents")
-    req = requests.get(url + "/agents/", headers=headers)
-    if req.status_code != 200:
+    try:
+        selected_agents = get_agents(url, agents_tag, headers)
+    except ValueError:
         logger.error("Unable to get agents")
         return (None, None, None)
-
-    selected_agents = [
-        a for a in req.json()["results"] if tag in a["parameters"]["agent_tags"]
-    ]
 
     # Upload the targets list created using the selector
     logger.debug("Create agents targets prefixes")
@@ -123,7 +119,7 @@ def iris_driver(
     for agent in selected_agents:
         probing_rate = agent["parameters"]["max_probing_rate"]
 
-        budget, n_round = compute_budget(probing_rate)
+        budget = compute_budget(probing_rate)
         if budget == 0:
             # Skip this agent because it has no budget
             continue
@@ -156,7 +152,6 @@ def iris_driver(
                 "uuid": agent["uuid"],
                 "target_file": target_file_name,
                 "tool_parameters": {
-                    "max_round": n_round,
                     "flow_mapper": "RandomFlowMapper",
                     "flow_mapper_kwargs": {"seed": 2021},
                 },
@@ -173,7 +168,7 @@ def iris_driver(
         json={
             "tool": tool,
             "agents": agents,
-            "tags": tags,
+            "tags": measurement_tags,
         },
         headers=headers,
     )
@@ -184,6 +179,9 @@ def iris_driver(
 
     uuid = req.json()["uuid"]
     logger.debug(f"Measurement UUID is `{uuid}`")
-    logger.debug("End")
 
+    if not dry_run and cleanup_targets:
+        clean_targets(url, selected_agents, headers)
+
+    logger.debug("End")
     return (uuid, exploitation_per_agent, prefixes_per_agent)

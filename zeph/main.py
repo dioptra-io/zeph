@@ -37,12 +37,14 @@ def create_selector(
     bgp_prefixes: List[List[str]],
     previous_measurement_uuid: Optional[UUID] = None,
     previous_agents_uuid: Optional[List[UUID]] = None,
+    bgp_awareness: bool = True,
 ):
     """Create prefix selector."""
     selector = EpsilonDFGSelector(
         database_url,
         epsilon=epsilon,
         authorized_prefixes=bgp_prefixes,
+        bgp_awareness=bgp_awareness,
     )
 
     logger.debug("Get discoveries")
@@ -69,6 +71,7 @@ def zeph(
     max_ttl: int = typer.Option(32),
     epsilon: float = typer.Option(0.1),
     previous_measurement_uuid: Optional[UUID] = typer.Option(None),
+    bgp_awareness: bool = True,
     fixed_budget: Optional[int] = typer.Option(None),
     dry_run: bool = False,
 ):
@@ -93,6 +96,7 @@ def zeph(
         bgp_prefixes,
         previous_measurement_uuid,
         agents_uuid,
+        bgp_awareness,
     )
 
     # Launch the measurement using Iris
@@ -108,7 +112,6 @@ def zeph(
         selector,
         default_compute_budget if not fixed_budget else lambda _: (fixed_budget, 10),
         logger,
-        clean_targets=True,
         exploitation_only=False,
         dry_run=dry_run,
     )
