@@ -146,7 +146,7 @@ def iris_driver(
                 logger.error("Impossible to updoad prefixes list file")
                 return (None, None, None)
 
-        # Add the prefixes-list to the agent  parameters
+        # Add the prefixes-list to the agent parameters
         agents.append(
             {
                 "uuid": agent["uuid"],
