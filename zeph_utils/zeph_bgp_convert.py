@@ -112,5 +112,13 @@ def main(
         pickle.dump(bgp_prefixes, fd)
 
 
+def run():
+    """
+    Run the CLI from a path like `zeph_utils.zeph_bgp_convert:run`.
+    Useful for poetry.
+    """
+    typer.run(main)
+
+
 if __name__ == "__main__":
     typer.run(main)

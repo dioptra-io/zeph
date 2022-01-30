@@ -132,5 +132,13 @@ def main(
     ftp_download(srvr, rp, fn, fn, filepath)
 
 
+def run():
+    """
+    Run the CLI from a path like `zeph_utils.zeph_bgp_download:run`.
+    Useful for poetry.
+    """
+    typer.run(main)
+
+
 if __name__ == "__main__":
     typer.run(main)
