@@ -125,13 +125,13 @@ class EpsilonRewardSelector(AbstractEpsilonSelector):
 
         # Count the discoveries
         discoveries_counter = Counter()
-        for subset, discoveries in subsets.values():
+        for subset, discoveries in subsets.items():
             discoveries_counter.update(discoveries)
 
         # Compute the reward (#unique_discoveries per prefix per agent)
         rewards_per_agent = defaultdict(dict)
         for subset, discoveries in subsets.items():
-            agent, prefix = subset
+            agent, prefix, _ = subset
             rewards_per_agent[agent][prefix] = [
                 discovery
                 for discovery in discoveries
