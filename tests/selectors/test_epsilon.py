@@ -1,4 +1,3 @@
-import selectors
 from ipaddress import ip_network
 
 from zeph.selectors.epsilon import EpsilonDFGSelector
