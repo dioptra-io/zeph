@@ -13,6 +13,11 @@ def bgp_prefixes():
 
 
 @pytest.fixture
+def agents_budget():
+    yield {"agent_1": 1, "agent_2": 1}
+
+
+@pytest.fixture
 def discoveries():
     yield {
         ("agent_1", ip_network("10.0.0.0/24"), 1): {1, 2, 3},

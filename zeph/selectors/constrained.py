@@ -41,11 +41,11 @@ class ConstrainedRandomSelector(RandomSelector):
 class ConstrainedEpsilonDFGSelector(EpsilonDFGSelector):
     def __init__(
         self,
-        database_url,
-        epsilon,
+        database_url: str,
+        epsilon: int,
         agents_budget,
         authorized_prefixes,
-        bgp_awareness=True,
+        bgp_awareness: bool = True,
     ) -> None:
         self.database_url = database_url
         self.epsilon = epsilon
