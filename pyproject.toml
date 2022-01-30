@@ -12,20 +12,22 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.10"
+python = ">=3.8,<4.0"
 requests = "^2.25.0"
 py-radix = "^0.10.0"
 mrtparse = "^2.0.1"
 typer = "^0.3.2"
-diamond-miner = "^0.5.1"
+diamond-miner = "^0.7.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
+pytest-cov = "^3.0.0"
 black = {version = "^20.8b1", allow-prereleases = true}
 flake8 = "^3.8.4"
 bump2version = "^1.0.1"
 
 [tool.poetry.scripts]
+zeph = "zeph.__main__:run"
 zeph-bgp-download = "zeph_utils.zeph_bgp_download:run"
 zeph-bgp-convert = "zeph_utils.zeph_bgp_convert:run"
 

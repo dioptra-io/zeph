@@ -7,10 +7,14 @@ from ipaddress import ip_network
 
 
 class AbstractSelector(ABC):
-    def _sanitize_uuid(self, uuid):
+    def __init__(self, authorized_prefixes, bgp_awareness=False) -> None:
+        self.authorized_prefixes = authorized_prefixes
+        self.bgp_awareness = bgp_awareness
+
+    def _sanitize_uuid(self, uuid) -> str:
         return str(uuid).replace("-", "_")
 
-    def _reverse_sanitize_uuid(self, uuid):
+    def _reverse_sanitize_uuid(self, uuid) -> str:
         return str(uuid).replace("_", "-")
 
     @abstractmethod
