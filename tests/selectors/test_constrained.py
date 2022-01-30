@@ -15,7 +15,7 @@ def test_constrained_random_selector(agents_budget, bgp_prefixes):
     assert len(total) == 1
 
 
-def test_constrained_random_selector(agents_budget, discoveries, bgp_prefixes):
+def test_constrained_epsilon_selector(agents_budget, discoveries, bgp_prefixes):
     selector = ConstrainedEpsilonDFGSelector(
         "clickhouse://localhost:8123", 0.1, agents_budget, bgp_prefixes
     )
