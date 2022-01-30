@@ -56,7 +56,7 @@ The easiest way to do that is to use the command line tools from located in `uti
 
 ### Download RIB
 
-Script: `utils/zeph_bgp_download.py`
+Script: `poetry run zeph-bgp-download`
 
 ```
 Usage: zeph_bgp_download.py [OPTIONS]
@@ -76,7 +76,7 @@ Options:
 
 ### Convert the RIB to pickle file
 
-Script: `utils/zeph_bgp_convert.py`
+Script: `poetry run zeph-bgp-convert`
 
 ```
 Usage: zeph_bgp_convert.py [OPTIONS] ROUTEVIEWS_FILEPATH
