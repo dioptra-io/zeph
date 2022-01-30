@@ -4,20 +4,20 @@
 [![Coverage](https://img.shields.io/codecov/c/github/dioptra-io/zeph?logo=codecov&logoColor=white)](https://app.codecov.io/gh/dioptra-io/zeph)
 [![PyPI](https://img.shields.io/pypi/v/dioptra-zeph?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/dioptra-zeph/)
 
-> Zeph is a reinforcement learning based algorithm for selecting prefixes to probe based on previous measurement in order to maximize the overall discoveries of nodes and links. Zeph can be used on top of [Iris](https://iris.dioptra.io) system.
+> Zeph is a reinforcement learning based algorithm for selecting prefixes to probe based on previous measurements in order to maximize the number of nodes and links discovered. Zeph can be used on top of the [Iris](https://iris.dioptra.io) platform.
 
 
 ## 🚀 Quickstart
 
-Zeph dispose of a command line interface to configure and run the algorithm.
+Zeph has a command line interface to configure and run the algorithm.
 
-Fist create the python virtual environment:
+First, create the Python virtual environment:
 
 ```
 poetry install 
 ```
 
-Then, you can run the script: `poetry run zeph`:
+Then, execute `poetry run zeph`:
 
 ```
 Usage: zeph.py [OPTIONS]
@@ -50,14 +50,14 @@ Options:
 
 ## ✨ Generate the BGP prefix file 
 
-To work, Zeph needs to know the universe of BGP prefixes that it can probe. 
-You can create a BGP prefix file by downloading the latest rib from routeviews.org and then convert it into a pickle file.
+Zeph needs to know the set of BGP prefixes that it can probe. 
+You can create a BGP prefix file by downloading the latest RIB from [routeviews.org](http://routeviews.org) and then convert it into a pickle file.
 
-The easiest way to do that is to use the command line tools from located in `utils/` folder.
+The easiest way to do that is to use the command line tools located in the `utils/` folder.
 
-### Download RIB
+### Download the RIB
 
-Script: `poetry run zeph-bgp-download`
+`poetry run zeph-bgp-download`
 
 ```
 Usage: zeph_bgp_download.py [OPTIONS]
@@ -75,9 +75,9 @@ Options:
   --help                          Show this message and exit.
   ```
 
-### Convert the RIB to pickle file
+### Convert the RIB to a pickle file
 
-Script: `poetry run zeph-bgp-convert`
+`poetry run zeph-bgp-convert`
 
 ```
 Usage: zeph_bgp_convert.py [OPTIONS] ROUTEVIEWS_FILEPATH
