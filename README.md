@@ -4,7 +4,7 @@
 [![Coverage](https://img.shields.io/codecov/c/github/dioptra-io/zeph?logo=codecov&logoColor=white)](https://app.codecov.io/gh/dioptra-io/zeph)
 [![PyPI](https://img.shields.io/pypi/v/dioptra-zeph?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/dioptra-zeph/)
 
-> Zeph is a reinforcement learning based algorithm for selecting prefixes to probe based on previous measurements in order to maximize the number of nodes and links discoveries. Zeph can be used on top of the [Iris](https://iris.dioptra.io) platform.
+> Zeph is a reinforcement learning based algorithm for selecting prefixes to probe based on previous measurements in order to maximize the number of nodes and links discovered. Zeph can be used on top of the [Iris](https://iris.dioptra.io) platform.
 
 
 ## 🚀 Quickstart
@@ -17,7 +17,7 @@ First, create the Python virtual environment:
 poetry install 
 ```
 
-Then, run the script `poetry run zeph`:
+Then, execute `poetry run zeph`:
 
 ```
 Usage: zeph.py [OPTIONS]
