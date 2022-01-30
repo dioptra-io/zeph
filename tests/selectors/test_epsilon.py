@@ -37,7 +37,7 @@ def test_epsilon_naive_selector_with_discoveries(bgp_prefixes, discoveries):
     assert len(total) == 1
 
 
-def test_epsilon_naive_selector_with_discoveries(bgp_prefixes, discoveries):
+def test_epsilon_greedy_selector_with_discoveries(bgp_prefixes, discoveries):
     selector = EpsilonGreedySelector("clickhouse://localhost:8123", 0.1, bgp_prefixes)
 
     selector.rank_per_agent = selector.compute_rank(discoveries)
