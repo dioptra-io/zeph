@@ -17,7 +17,7 @@ Fist create the python virtual environment:
 poetry install 
 ```
 
-Then, you can run the script: `python -m zeph`:
+Then, you can run the script: `poetry run zeph`:
 
 ```
 Usage: zeph.py [OPTIONS]

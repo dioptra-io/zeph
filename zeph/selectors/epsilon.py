@@ -14,10 +14,10 @@ from zeph.selectors.abstract import AbstractSelector
 class AbstractEpsilonSelector(AbstractSelector):
     def __init__(
         self,
-        database_url,
-        epsilon,
+        database_url: str,
+        epsilon: int,
         authorized_prefixes,
-        bgp_awareness=True,
+        bgp_awareness: bool = True,
     ):
         self.database_url = database_url
 
@@ -26,7 +26,6 @@ class AbstractEpsilonSelector(AbstractSelector):
         self.authorized_prefixes = authorized_prefixes
         self.bgp_awareness = bgp_awareness
 
-        self._discoveries = {}
         self.rank_per_agent = {}
 
     def ip_to_network(self, ip, v4_length=24, v6_length=64) -> str:
