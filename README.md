@@ -1,6 +1,7 @@
 # 🌬️ Zeph
 
-[![GitHub license](https://img.shields.io/github/license/dioptra-io/zeph)](https://github.com/dioptra-io/zeph/blob/main/LICENSE)
+[![Tests](https://img.shields.io/github/workflow/status/dioptra-io/zeph/Tests?logo=github)](https://github.com/dioptra-io/zeph/actions/workflows/tests.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/dioptra-io/zeph?logo=codecov&logoColor=white)](https://app.codecov.io/gh/dioptra-io/zeph)
 [![PyPI](https://img.shields.io/pypi/v/dioptra-zeph?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/dioptra-zeph/)
 
 > Zeph is a reinforcement learning based algorithm for selecting prefixes to probe based on previous measurement in order to maximize the overall discoveries of nodes and links. Zeph can be used on top of [Iris](https://iris.dioptra.io) system.
