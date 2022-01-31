@@ -11,13 +11,13 @@
 
 Zeph has a command line interface to configure and run the algorithm.
 
-First, create the Python virtual environment:
+First, install the Zeph package:
 
 ```
-poetry install 
+pip install dioptra-zeph
 ```
 
-Then, execute `poetry run zeph`:
+Then, execute `zeph`:
 
 ```
 Usage: zeph.py [OPTIONS]
@@ -57,7 +57,7 @@ The easiest way to do that is to use the command line tools located in the `util
 
 ### Download the RIB
 
-`poetry run zeph-bgp-download`
+`zeph-bgp-download`
 
 ```
 Usage: zeph_bgp_download.py [OPTIONS]
@@ -77,7 +77,7 @@ Options:
 
 ### Convert the RIB to a pickle file
 
-`poetry run zeph-bgp-convert`
+`zeph-bgp-convert`
 
 ```
 Usage: zeph_bgp_convert.py [OPTIONS] ROUTEVIEWS_FILEPATH
