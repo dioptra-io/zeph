@@ -20,7 +20,7 @@ typer = ">=0.3.2,<0.5.0"
 diamond-miner = "^0.7.1"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2"
+pytest = "^7.0"
 pytest-cov = "^3.0.0"
 black = {version = "^22.1", allow-prereleases = true}
 flake8 = "^4.0.1"
