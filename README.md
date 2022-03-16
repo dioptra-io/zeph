@@ -101,7 +101,27 @@ Options:
 
 ## 📚 Publications
 
-```
+## 📚 Publications
+
+```bibtex
+@article{10.1145/3523230.3523232,
+author = {Gouel, Matthieu and Vermeulen, Kevin and Mouchet, Maxime and Rohrer, Justin P. and Fourmaux, Olivier and Friedman, Timur},
+title = {Zeph &amp; Iris Map the Internet: A Resilient Reinforcement Learning Approach to Distributed IP Route Tracing},
+year = {2022},
+issue_date = {January 2022},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {52},
+number = {1},
+issn = {0146-4833},
+url = {https://doi.org/10.1145/3523230.3523232},
+doi = {10.1145/3523230.3523232},
+journal = {SIGCOMM Comput. Commun. Rev.},
+month = {mar},
+pages = {2–9},
+numpages = {8},
+keywords = {active internet measurements, internet topology}
+}
 ```
 
 ## 🧑‍💻 Authors
