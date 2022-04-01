@@ -22,7 +22,7 @@ diamond-miner = "^0.7.1"
 [tool.poetry.dev-dependencies]
 pytest = "^7.1"
 pytest-cov = "^3.0.0"
-black = {version = "^22.1", allow-prereleases = true}
+black = {version = "^22.3", allow-prereleases = true}
 flake8 = "^4.0.1"
 bump2version = "^1.0.1"
 
