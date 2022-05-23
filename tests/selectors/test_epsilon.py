@@ -1,15 +1,8 @@
 from ipaddress import ip_network
 
-from zeph.selectors.epsilon import (
-    EpsilonDFGSelector,
-    EpsilonGreedySelector,
-    EpsilonNaiveSelector,
-    EpsilonRewardSelector,
-)
 
-
-def test_epsilon_dfg_selector_first_cycle(bgp_prefixes):
-    selector = EpsilonDFGSelector("clickhouse://localhost:8123", 0.1, bgp_prefixes)
+def test_epsilon_dfg_selector_first_cycle(clickhouse, universe):
+    selector = EpsilonDFGSelector(clickhouse, 0.1, universe)
 
     exploitation, total = selector.select("agent_1", budget=1)
 
@@ -17,40 +10,40 @@ def test_epsilon_dfg_selector_first_cycle(bgp_prefixes):
     assert len(total) == 1
 
 
-def test_epsilon_reward_selector_with_discoveries(bgp_prefixes, discoveries):
-    selector = EpsilonRewardSelector("clickhouse://localhost:8123", 0.1, bgp_prefixes)
+def test_epsilon_reward_selector_with_discoveries(clickhouse, universe, links):
+    selector = EpsilonRewardSelector(clickhouse, 0.1, universe)
 
-    selector.rank_per_agent = selector.compute_rank(discoveries)
+    selector.ranked_prefixes = selector.compute_rank(links)
     exploitation, total = selector.select("agent_1", budget=1)
 
     assert exploitation == {ip_network("10.0.0.0/24")}
     assert len(total) == 1
 
 
-def test_epsilon_naive_selector_with_discoveries(bgp_prefixes, discoveries):
-    selector = EpsilonNaiveSelector("clickhouse://localhost:8123", 0.1, bgp_prefixes)
+def test_epsilon_naive_selector_with_discoveries(clickhouse, universe, links):
+    selector = EpsilonNaiveSelector(clickhouse, 0.1, universe)
 
-    selector.rank_per_agent = selector.compute_rank(discoveries)
+    selector.ranked_prefixes = selector.compute_rank(links)
     exploitation, total = selector.select("agent_1", budget=1)
 
     assert exploitation == {ip_network("10.0.0.0/24")}
     assert len(total) == 1
 
 
-def test_epsilon_greedy_selector_with_discoveries(bgp_prefixes, discoveries):
-    selector = EpsilonGreedySelector("clickhouse://localhost:8123", 0.1, bgp_prefixes)
+def test_epsilon_greedy_selector_with_discoveries(clickhouse, universe, links):
+    selector = EpsilonGreedySelector(clickhouse, 0.1, universe)
 
-    selector.rank_per_agent = selector.compute_rank(discoveries)
+    selector.ranked_prefixes = selector.compute_rank(links)
     exploitation, total = selector.select("agent_1", budget=1)
 
     assert exploitation == {ip_network("10.0.0.0/24")}
     assert len(total) == 1
 
 
-def test_epsilon_dfg_selector_with_with_discoveries(bgp_prefixes, discoveries):
-    selector = EpsilonDFGSelector("clickhouse://localhost:8123", 0.1, bgp_prefixes)
+def test_epsilon_dfg_selector_with_with_discoveries(clickhouse, universe, links):
+    selector = EpsilonDFGSelector(clickhouse, 0.1, universe)
 
-    selector.rank_per_agent = selector.compute_rank(discoveries)
+    selector.ranked_prefixes = selector.compute_rank(links)
     exploitation, total = selector.select("agent_1", budget=1)
 
     assert exploitation == {ip_network("10.0.0.0/24")}

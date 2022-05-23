@@ -35,7 +35,6 @@ from ftplib import FTP
 from pathlib import Path
 from sys import stdout
 from time import time
-from typing import Optional
 
 import typer
 
@@ -125,7 +124,7 @@ def find_latest_routeviews(archive_ipv):
 def main(
     latestv4: bool = False,
     latestv6: bool = False,
-    filepath: Optional[Path] = typer.Option(None),
+    filepath: Path | None = typer.Option(None),
 ):
     # Download latest RouteViews MRT/RIB archive
     srvr, rp, fn = find_latest_routeviews(4 if latestv4 else 6 if latestv6 else "46")

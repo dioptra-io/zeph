@@ -9,7 +9,6 @@ TODO: IPv6 support
 import ipaddress
 import pickle
 from pathlib import Path
-from typing import Optional
 
 import radix
 import typer
@@ -98,8 +97,8 @@ def create_bgp_prefixes(radix):
 
 def main(
     routeviews_filepath: Path,
-    bgp_prefixes_path: Optional[Path] = typer.Option(None),
-    excluded_prefixes_path: Optional[Path] = typer.Option(None),
+    bgp_prefixes_path: Path | None = typer.Option(None),
+    excluded_prefixes_path: Path | None = typer.Option(None),
 ):
     authorized_radix = create_bgp_radix(
         routeviews_filepath,

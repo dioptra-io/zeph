@@ -23,12 +23,6 @@ Then, execute `zeph`:
 Usage: zeph.py [OPTIONS]
 
 Options:
-  --api-url TEXT                  [default: https://api.iris.dioptra.io]
-  --api-username TEXT             [required]
-  --api-password TEXT             [required]
-  --database-url TEXT             [default:
-                                  http://localhost:8123?database=iris]
-
   --bgp-prefixes-path PATH        [required]
   --agent-tag TEXT                [default: all]
   --tool TEXT                     [default: diamond-miner]
@@ -48,9 +42,9 @@ Options:
   --help                          Show this message and exit.
 ```
 
-## ✨ Generate the BGP prefix file 
+## ✨ Generate the BGP prefix file
 
-Zeph needs to know the set of BGP prefixes that it can probe. 
+Zeph needs to know the set of BGP prefixes that it can probe.
 You can create a BGP prefix file by downloading the latest RIB from [routeviews.org](http://routeviews.org) and then convert it into a pickle file.
 
 The easiest way to do that is to use the command line tools located in the `utils/` folder.
