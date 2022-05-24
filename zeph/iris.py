@@ -5,6 +5,8 @@ from uuid import uuid4
 from httpx import HTTPStatusError
 from iris_client import IrisClient
 
+from zeph.typing import Network
+
 
 def create_measurement(client: IrisClient, definition: dict) -> dict:
     res = client.post("/measurements", json=definition)
@@ -27,7 +29,7 @@ def get_measurement_agents(client: IrisClient, measurement_uuid: str) -> list[st
 
 def upload_prefix_list(
     client: IrisClient,
-    prefixes: set[str],
+    prefixes: set[Network],
     protocol: str,
     min_ttl: int,
     max_ttl: int,

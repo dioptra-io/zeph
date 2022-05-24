@@ -6,7 +6,10 @@ from zeph.typing import Agent, Link, Network
 
 class DFGCoverRanker(AbstractRanker):
     """
-    TODO: Ref + explanation p.
+    Reference:
+    Cormode, Graham, Howard Karloff, and Anthony Wirth.
+    "Set cover algorithms for very large datasets."
+    Proceedings of the 19th ACM international conference on Information and knowledge management. 2010.
     """
 
     def __init__(self, p: float = 1.05):

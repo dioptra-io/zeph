@@ -8,5 +8,4 @@ class AbstractRanker(ABC):
     def __call__(
         self, links: dict[tuple[Agent, Network], set[Link]]
     ) -> dict[Agent, list[Network]]:
-        """TODO"""
         ...

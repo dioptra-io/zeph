@@ -8,9 +8,6 @@ from zeph.typing import Network
 
 class AbstractSelector(ABC):
     def __init__(self, universe: set[Network], budgets: dict[str, int]) -> None:
-        # TODO: Document: a list of /24 prefixes
-        # TODO: Check that this is actually a list of /24 + todo IPv6 support
-        # TODO: Default universe? Lazily generate /24?
         self.universe = universe
         self.budgets = budgets
 
