@@ -142,4 +142,5 @@ cython_debug/
 .vscode
 
 prefixes.txt
+rib.*.bz2
 zeph_data/

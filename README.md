@@ -37,53 +37,17 @@ zeph --previous-measurement UUID prefixes.txt
 Zeph relies on [iris-client](https://github.com/dioptra-io/iris-client) and [pych-client](https://github.com/dioptra-io/pych-client)
 for communicating with Iris and ClickHouse. See their respective documentation to know how to specify the credentials.
 
-## ✨ Generate the BGP prefix file
+## ✨ Generate prefix lists from BGP RIBs
 
-Zeph needs to know the set of BGP prefixes that it can probe.
-You can create a BGP prefix file by downloading the latest RIB from [routeviews.org](http://routeviews.org) and then convert it into a pickle file.
-
-The easiest way to do that is to use the command line tools located in the `utils/` folder.
-
-### Download the RIB
-
-`zeph-bgp-download`
-
-```
-Usage: zeph_bgp_download.py [OPTIONS]
-
-Options:
-  --latestv4 / --no-latestv4      [default: False]
-  --latestv6 / --no-latestv6      [default: False]
-  --filepath PATH
-  --install-completion [bash|zsh|fish|powershell|pwsh]
-                                  Install completion for the specified shell.
-  --show-completion [bash|zsh|fish|powershell|pwsh]
-                                  Show completion for the specified shell, to
-                                  copy it or customize the installation.
-
-  --help                          Show this message and exit.
-  ```
-
-### Convert the RIB to a pickle file
-
-`zeph-bgp-convert`
-
-```
-Usage: zeph_bgp_convert.py [OPTIONS] ROUTEVIEWS_FILEPATH
-
-Arguments:
-  ROUTEVIEWS_FILEPATH  [required]
-
-Options:
-  --bgp-prefixes-path PATH
-  --excluded-prefixes-path PATH
-  --install-completion [bash|zsh|fish|powershell|pwsh]
-                                  Install completion for the specified shell.
-  --show-completion [bash|zsh|fish|powershell|pwsh]
-                                  Show completion for the specified shell, to
-                                  copy it or customize the installation.
-
-  --help                          Show this message and exit.
+You can create an _exhaustive_ list of /24 prefixes from a BGP RIB dump:
+```bash
+pyasn_util_download.py --latest
+# Connecting to ftp://archive.routeviews.org
+# Finding most recent archive in /bgpdata/2022.05/RIBS ...
+# Downloading ftp://archive.routeviews.org//bgpdata/2022.05/RIBS/rib.20220524.1000.bz2
+#  100%, 659KB/s
+# Download complete.
+zeph-bgp-convert --print-progress rib.20220524.1000.bz2 prefixes.txt
 ```
 
 ## 📚 Publications
