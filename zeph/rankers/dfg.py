@@ -1,9 +1,7 @@
 from collections import defaultdict
 
-from diamond_miner.typing import IPNetwork
-
 from zeph.rankers import AbstractRanker
-from zeph.typing import Agent, Link
+from zeph.typing import Agent, Link, Network
 
 
 class DFGCoverRanker(AbstractRanker):
@@ -15,8 +13,8 @@ class DFGCoverRanker(AbstractRanker):
         self.p = p
 
     def __call__(
-        self, links: dict[tuple[Agent, IPNetwork], set[Link]]
-    ) -> dict[Agent, list[IPNetwork]]:
+        self, links: dict[tuple[Agent, Network], set[Link]]
+    ) -> dict[Agent, list[Network]]:
         covered: set[tuple[str, str]] = set()
         prefixes = defaultdict(list)
         subcollections = defaultdict(list)

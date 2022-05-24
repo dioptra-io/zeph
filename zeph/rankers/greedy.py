@@ -1,18 +1,16 @@
 from collections import defaultdict
 
-from diamond_miner.typing import IPNetwork
-
 from zeph.rankers import AbstractRanker
-from zeph.typing import Agent, Link
+from zeph.typing import Agent, Link, Network
 
 
 class GreedyCoverRanker(AbstractRanker):
     def __call__(
-        self, links: dict[tuple[Agent, IPNetwork], set[Link]]
-    ) -> dict[Agent, list[IPNetwork]]:
+        self, links: dict[tuple[Agent, Network], set[Link]]
+    ) -> dict[Agent, list[Network]]:
         all_links: set[Link] = set()
         covered: set[tuple[str, str]] = set()
-        prefixes: dict[Agent, list[IPNetwork]] = defaultdict(list)
+        prefixes: dict[Agent, list[Network]] = defaultdict(list)
 
         for links_ in links.values():
             all_links.update(links_)

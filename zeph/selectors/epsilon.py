@@ -4,24 +4,24 @@ Epsilon-based selectors.
 Apply a reinforcement-learning approach to select prefixes.
 """
 
-from diamond_miner.typing import IPNetwork
 
 from zeph.selectors.abstract import AbstractSelector
+from zeph.typing import Network
 
 
 class EpsilonSelector(AbstractSelector):
     def __init__(
         self,
-        universe: set[IPNetwork],
+        universe: set[Network],
         budgets: dict[str, int],
         epsilon: float,
-        ranked_prefixes: dict[str, list[IPNetwork]],
+        ranked_prefixes: dict[str, list[Network]],
     ):
         super().__init__(universe, budgets)
         self.epsilon = epsilon
         self.ranked_prefixes = ranked_prefixes
 
-    def select(self, agent_uuid: str) -> set[IPNetwork]:
+    def select(self, agent_uuid: str) -> set[Network]:
         """
         epsilon-based policy :
             * select e where eB will be used for exploration.

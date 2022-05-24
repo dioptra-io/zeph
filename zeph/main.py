@@ -4,7 +4,6 @@ Zeph.
 Communicate with Iris to perform measurements.
 """
 
-import pickle
 from pathlib import Path
 from typing import Optional
 
@@ -15,8 +14,8 @@ from pych_client import ClickHouseClient
 from zeph.iris import (
     create_measurement,
     get_agents,
-    get_previous_measurement_agents,
-    iris_driver,
+    get_measurement_agents,
+    upload_prefix_list,
 )
 from zeph.logging import logger
 from zeph.queries import GetUniqueLinksByPrefix
@@ -35,28 +34,33 @@ def zeph(
     min_ttl: int = typer.Option(2, metavar="TTL"),
     max_ttl: int = typer.Option(32, metavar="TTL"),
     exploration_ratio: float = typer.Option(0.1),
-    previous_measurement_uuid: Optional[str] = typer.Option(None, metavar="UUID"),
+    previous_measurement: Optional[str] = typer.Option(None, metavar="UUID"),
     fixed_budget: Optional[int] = typer.Option(None),
     dry_run: bool = typer.Option(False),
 ) -> None:
-
     logger.info("Load prefixes")
-    with open(prefixes_file, "rb") as fd:
-        universe = pickle.load(fd)
+    universe = set()
+    with prefixes_file.open() as f:
+        for line in f:
+            if line.startswith("#"):
+                continue
+            line = line.strip()
+            assert line.endswith("/24") or line.endswith("/64")
+            universe.add(line)
+    logger.info("%s distinct prefixes loaded", len(universe))
 
     with IrisClient() as iris, ClickHouseClient() as clickhouse:
         # Rank the prefixes based on the previous measurement
         ranked_prefixes = {}
-        if previous_measurement_uuid:
-            logger.info("Get previous measurement agents")
-            previous_agents = get_previous_measurement_agents(
-                iris, previous_measurement_uuid
-            )
+        if previous_measurement:
+            logger.info("Get previous agents")
+            previous_agents = get_measurement_agents(iris, previous_measurement)
+            logger.info("Previous agents: %s", previous_agents)
 
             logger.info("Get previous links")
             query = GetUniqueLinksByPrefix()
             links = query.for_all_agents(
-                clickhouse, previous_measurement_uuid, previous_agents
+                clickhouse, previous_measurement, previous_agents
             )
 
             logger.info("Rank previous prefixes")
@@ -65,39 +69,58 @@ def zeph(
 
         logger.info("Get current agents")
         agents = get_agents(iris, agent_tag)
+        logger.info("Current agents: %s", list(agents.keys()))
 
         logger.info("Compute agents budget")
         budgets: dict[str, int] = {}
-        for agent in agents:
+        for agent_uuid, agent in agents.items():
             if fixed_budget:
-                budgets[agent["uuid"]] = fixed_budget
+                budgets[agent_uuid] = fixed_budget
             else:
                 #  Compute the budget (number of prefixes to send per agent).
                 #  Based on the probing rate and the approximate duration of the measurement.
                 #  6 hours at 100'000 pps -> 200'000 prefixes (from the paper)
                 probing_rate = agent["parameters"]["max_probing_rate"]
-                budgets[agent["uuid"]] = probing_rate * 2
+                budgets[agent_uuid] = probing_rate * 2
 
         # Instantiate the selector
-        selector = EpsilonSelector(universe, budgets, epsilon, ranked_prefixes)
-
-        # Create the measurements
-        for agent in agents:
-            prefixes = selector.select(agent["uuid"])
-            if not dry_run:
-                # TODO: Cleanup target lists
-                measurement = create_measurement(iris, agent["uuid"], prefixes)
-
-        # Launch the measurement using Iris
-        iris_driver(
-            iris,
-            agent_tag,
-            tool,
-            protocol,
-            min_ttl,
-            max_ttl,
-            selector,
-            budget,
-            logger,
-            dry_run=dry_run,
+        selector = EpsilonSelector(
+            universe, budgets, exploration_ratio, ranked_prefixes
         )
+
+        # Select and upload the prefixes
+        targets = {}
+        for agent_uuid in agents:
+            logger.info("Select prefixes for %s", agent_uuid)
+            prefixes = selector.select(agent_uuid)
+            if not dry_run:
+                logger.info("Upload prefixes for %s", agent_uuid)
+                targets[agent_uuid] = upload_prefix_list(
+                    iris, prefixes, protocol, min_ttl, max_ttl
+                )
+                logger.info(
+                    "Uploaded prefixes for %s to %s", agent_uuid, targets[agent_uuid]
+                )
+
+        # Create the measurement
+        if not dry_run:
+            logger.info("Create measurement")
+            definition = {
+                "tags": measurement_tags.split(","),
+                "tool": tool,
+                "agents": [
+                    {
+                        "uuid": agent_uuid,
+                        "target_file": targets[agent_uuid],
+                        "tool_parameters": {
+                            "flow_mapper": "RandomFlowMapper",
+                            "flow_mapper_kwargs": {"seed": 2021},
+                        },
+                    }
+                    for agent_uuid in agents
+                ],
+            }
+            measurement = create_measurement(iris, definition)
+            logger.info("Created measurement %s", measurement["uuid"])
+
+        # TODO: Cleanup

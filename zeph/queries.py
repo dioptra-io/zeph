@@ -5,7 +5,7 @@ from diamond_miner.queries.query import LinksQuery, links_table
 from diamond_miner.typing import IPNetwork
 from pych_client import ClickHouseClient
 
-from zeph.typing import Agent, Link
+from zeph.typing import Agent, Link, Network
 from zeph.utilities import measurement_id, parse_network
 
 
@@ -26,7 +26,7 @@ class GetUniqueLinksByPrefix(LinksQuery):
 
     def for_all_agents(
         self, client: ClickHouseClient, measurement_uuid: str, agents_uuid: list[str]
-    ) -> dict[tuple[Agent, IPNetwork], set[Link]]:
+    ) -> dict[tuple[Agent, Network], set[Link]]:
         links = {}
         for agent_uuid in agents_uuid:
             for row in self.execute_iter(

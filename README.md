@@ -11,10 +11,31 @@
 
 Zeph has a command line interface to configure and run the algorithm.
 
+First, install the Zeph package:
+
 ```
 pip install dioptra-zeph
-zeph --help
 ```
+
+Zeph takes as input a list of /24 (IPv4) or /64 (IPv6) prefixes:
+```
+# prefixes.txt
+8.8.8.0/24
+2001:4860:4860::/64
+```
+
+To start a measurement from scratch:
+```bash
+zeph prefixes.txt
+```
+
+To start from a previous measurement:
+```bash
+zeph --previous-measurement UUID prefixes.txt
+```
+
+Zeph relies on [iris-client](https://github.com/dioptra-io/iris-client) and [pych-client](https://github.com/dioptra-io/pych-client)
+for communicating with Iris and ClickHouse. See their respective documentation to know how to specify the credentials.
 
 ## ✨ Generate the BGP prefix file
 

@@ -1,14 +1,12 @@
 from abc import ABC, abstractmethod
 
-from diamond_miner.typing import IPNetwork
-
-from zeph.typing import Agent, Link
+from zeph.typing import Agent, Link, Network
 
 
 class AbstractRanker(ABC):
     @abstractmethod
     def __call__(
-        self, links: dict[tuple[Agent, IPNetwork], set[Link]]
-    ) -> dict[Agent, list[IPNetwork]]:
+        self, links: dict[tuple[Agent, Network], set[Link]]
+    ) -> dict[Agent, list[Network]]:
         """TODO"""
         ...

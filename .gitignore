@@ -141,4 +141,5 @@ cython_debug/
 # VSCode
 .vscode
 
+prefixes
 zeph_data/
