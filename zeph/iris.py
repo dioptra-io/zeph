@@ -4,7 +4,6 @@ from logging import Logger
 
 from iris_client import IrisClient
 
-from zeph.budget import AbstractBudget
 from zeph.selectors.abstract import AbstractSelector
 
 
@@ -50,7 +49,6 @@ def iris_driver(
     min_ttl: int,
     max_ttl: int,
     selector: AbstractSelector,
-    compute_budget: AbstractBudget,
     logger: Logger,
     measurement_tags: list[str] = ["test"],
     cleanup_targets: bool = True,

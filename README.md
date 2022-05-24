@@ -11,35 +11,9 @@
 
 Zeph has a command line interface to configure and run the algorithm.
 
-First, install the Zeph package:
-
 ```
 pip install dioptra-zeph
-```
-
-Then, execute `zeph`:
-
-```
-Usage: zeph.py [OPTIONS]
-
-Options:
-  --bgp-prefixes-path PATH        [required]
-  --agent-tag TEXT                [default: all]
-  --tool TEXT                     [default: diamond-miner]
-  --protocol TEXT                 [default: icmp]
-  --min-ttl INTEGER               [default: 2]
-  --max-ttl INTEGER               [default: 32]
-  --epsilon FLOAT                 [default: 0.1]
-  --previous-measurement-uuid UUID
-  --fixed-budget INTEGER
-  --dry-run / --no-dry-run        [default: False]
-  --install-completion [bash|zsh|fish|powershell|pwsh]
-                                  Install completion for the specified shell.
-  --show-completion [bash|zsh|fish|powershell|pwsh]
-                                  Show completion for the specified shell, to
-                                  copy it or customize the installation.
-
-  --help                          Show this message and exit.
+zeph --help
 ```
 
 ## ✨ Generate the BGP prefix file
@@ -90,10 +64,6 @@ Options:
 
   --help                          Show this message and exit.
 ```
-
-
-
-## 📚 Publications
 
 ## 📚 Publications
 
