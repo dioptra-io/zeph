@@ -18,7 +18,7 @@ pip install dioptra-zeph
 ```
 
 Zeph takes as input a list of /24 (IPv4) or /64 (IPv6) prefixes:
-```
+```sh
 # prefixes.txt
 8.8.8.0/24
 2001:4860:4860::/64
