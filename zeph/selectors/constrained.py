@@ -10,7 +10,7 @@ from itertools import cycle
 
 from diamond_miner.typing import IPNetwork
 
-from zeph.selectors.rand import RandomSelector
+from zeph.selectors.random import RandomSelector
 
 
 class ConstrainedRandomSelector(RandomSelector):
