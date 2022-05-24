@@ -10,6 +10,7 @@ from typing import Optional
 import typer
 from iris_client import IrisClient
 from pych_client import ClickHouseClient
+from tqdm import tqdm
 
 from zeph import rankers
 from zeph.iris import (
@@ -85,7 +86,7 @@ def zeph(
     logger.info("Load prefixes")
     universe = set()
     with prefixes_file.open() as f:
-        for line in f:
+        for line in tqdm(f):
             if line.startswith("#"):
                 continue
             line = line.strip()
