@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from math import floor
 
 
 class AbstractBudget(ABC):
@@ -15,11 +14,21 @@ class DefaultBudget(AbstractBudget):
         Based on the probing rate and the approximate duration of the measurement.
         ---
         6 hours at 100_000 kpps -> 200_000 prefixes (from the paper)
+        >>> budget = DefaultBudget()
+        >>> budget(100000)
+        200000
         """
-        return floor(probing_rate * 2)
+        return probing_rate * 2
 
 
 class FixedBudget(AbstractBudget):
+    """
+    A budget that does not depends on the probing rate.
+    >>> budget = FixedBudget(100)
+    >>> budget(0)
+    100
+    """
+
     def __init__(self, budget: int):
         self.budget = budget
 

@@ -10,13 +10,12 @@ from itertools import cycle
 
 from diamond_miner.typing import IPNetwork
 
-from zeph.selectors.random import RandomSelector
+from zeph.selectors.rand import RandomSelector
 
 
 class ConstrainedRandomSelector(RandomSelector):
     def __init__(self, universe: set[IPNetwork], budgets: dict[str, int]) -> None:
-        super().__init__(universe)
-        self.budgets = budgets
+        super().__init__(universe, budgets)
         self.prefixes = self.dispatch()
 
     def dispatch(self) -> dict[str, set[IPNetwork]]:
@@ -27,7 +26,5 @@ class ConstrainedRandomSelector(RandomSelector):
             prefixes[agent].add(prefix)
         return prefixes
 
-    def select(
-        self, agent_uuid: str, budget: int
-    ) -> tuple[set[IPNetwork], set[IPNetwork]]:
-        return set(), self.prefixes[agent_uuid]
+    def select(self, agent_uuid: str) -> set[IPNetwork]:
+        return self.prefixes[agent_uuid]

@@ -7,11 +7,12 @@ from diamond_miner.typing import IPNetwork
 
 
 class AbstractSelector(ABC):
-    def __init__(self, universe: set[IPNetwork]) -> None:
+    def __init__(self, universe: set[IPNetwork], budgets: dict[str, int]) -> None:
         # TODO: Document: a list of /24 prefixes
         # TODO: Check that this is actually a list of /24 + todo IPv6 support
         # TODO: Default universe? Lazily generate /24?
         self.universe = universe
+        self.budgets = budgets
 
     def universe_shuffled(self) -> list[IPNetwork]:
         universe = list(self.universe)
@@ -19,16 +20,19 @@ class AbstractSelector(ABC):
         return universe
 
     @abstractmethod
-    def select(
-        self, agent_uuid: str, budget: int
-    ) -> tuple[set[IPNetwork], set[IPNetwork]]:
+    def select(self, agent_uuid: str) -> set[IPNetwork]:
         pass
 
     def _select_random(
-        self, budget: int, preset: set[IPNetwork] | None = None
+        self, agent_uuid: str, preset: set[IPNetwork] | None = None
     ) -> set[IPNetwork]:
-        preset = preset or set()
+        prefixes = set()
+        if preset:
+            prefixes.update(preset)
         universe = self.universe_shuffled()
-        while len(preset) < min(len(universe), budget):
-            preset.add(universe.pop())
-        return preset
+        budget = self.budgets[agent_uuid]
+        for prefix in universe:
+            if len(prefixes) >= budget:
+                break
+            prefixes.add(prefix)
+        return prefixes

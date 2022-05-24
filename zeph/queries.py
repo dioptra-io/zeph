@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from ipaddress import IPv6Address
 
 from diamond_miner.defaults import UNIVERSE_SUBSET
 from diamond_miner.queries.query import LinksQuery, links_table
@@ -7,7 +6,7 @@ from diamond_miner.typing import IPNetwork
 from pych_client import ClickHouseClient
 
 from zeph.typing import Agent, Link
-from zeph.utilities import addr_to_network, measurement_id
+from zeph.utilities import measurement_id, parse_network
 
 
 @dataclass(frozen=True)
@@ -33,7 +32,6 @@ class GetUniqueLinksByPrefix(LinksQuery):
             for row in self.execute_iter(
                 client, measurement_id(measurement_uuid, agent_uuid)
             ):
-                dst_prefix = IPv6Address(row["probe_dst_prefix"])
-                network = addr_to_network(dst_prefix)
+                network = parse_network(row["probe_dst_prefix"])
                 links[(agent_uuid, network)] = set(row["links"])
         return links
