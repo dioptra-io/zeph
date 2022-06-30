@@ -32,7 +32,7 @@ pytest = "^7.1"
 pytest-cov = "^3.0.0"
 
 [tool.poetry.scripts]
-zeph = "zeph.__main__:run"
+zeph = "zeph.main:app"
 zeph-bgp-convert = "zeph_utils.zeph_bgp_convert:run"
 
 [tool.coverage.report]

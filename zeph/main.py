@@ -3,7 +3,7 @@ Zeph.
 
 Communicate with Iris to perform measurements.
 """
-
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -25,7 +25,10 @@ from zeph.rankers import AbstractRanker
 from zeph.selectors import EpsilonSelector
 from zeph.typing import Network
 
+app = typer.Typer()
 
+
+@app.command()
 def zeph(
     prefixes_file: Path = typer.Argument(
         ...,
@@ -117,6 +120,7 @@ def zeph(
         metavar="PASSWORD",
     ),
 ) -> None:
+    logging.basicConfig(level=logging.INFO)
     logger.info("Load prefixes")
     universe = set()
     with prefixes_file.open() as f:
