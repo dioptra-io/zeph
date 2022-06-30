@@ -27,11 +27,11 @@ class GetUniqueLinksByPrefix(LinksQuery):
     def for_all_agents(
         self, client: ClickHouseClient, measurement_uuid: str, agents_uuid: list[str]
     ) -> dict[tuple[Agent, Network], set[Link]]:
-        links = {}
+        links: dict[tuple[Agent, Network], set[Link]] = {}
         for agent_uuid in agents_uuid:
             for row in self.execute_iter(
                 client, measurement_id(measurement_uuid, agent_uuid)
             ):
                 network = parse_network(row["probe_dst_prefix"])
-                links[(agent_uuid, network)] = set(row["links"])
+                links[(agent_uuid, network)] = set(tuple(link) for link in row["links"])  # type: ignore
         return links

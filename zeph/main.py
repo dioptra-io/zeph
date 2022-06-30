@@ -31,6 +31,10 @@ def zeph(
         ...,
         help="File containing all the /24 or /64 prefixes that can be probed.",
     ),
+    previous_uuid: Optional[str] = typer.Argument(
+        None,
+        help="UUID of the previous measurement cycle",
+    ),
     agent_tag: str = typer.Option(
         "all",
         help="The tag used to select the agents",
@@ -65,11 +69,6 @@ def zeph(
         0.1,
         help="The minimum percentage of the budget allocated to exploration",
     ),
-    previous_measurement: Optional[str] = typer.Option(
-        None,
-        help="UUID of the previous measurement cycle",
-        metavar="UUID",
-    ),
     fixed_budget: Optional[int] = typer.Option(
         None,
         help="Override the agents budget",
@@ -81,6 +80,41 @@ def zeph(
     dry_run: bool = typer.Option(
         False,
         help="Do not actually perform the measurement",
+    ),
+    clickhouse_base_url: str = typer.Option(
+        None,
+        help="ClickHouse URL",
+        metavar="URL",
+    ),
+    clickhouse_database: str = typer.Option(
+        None,
+        help="ClickHouse database",
+        metavar="DATABASE",
+    ),
+    clickhouse_username: str = typer.Option(
+        None,
+        help="ClickHouse username",
+        metavar="USERNAME",
+    ),
+    clickhouse_password: str = typer.Option(
+        None,
+        help="ClickHouse password",
+        metavar="PASSWORD",
+    ),
+    iris_base_url: str = typer.Option(
+        None,
+        help="Iris API URL",
+        metavar="BASE_URL",
+    ),
+    iris_username: str = typer.Option(
+        None,
+        help="Iris API username",
+        metavar="USERNAME",
+    ),
+    iris_password: str = typer.Option(
+        None,
+        help="Iris API password",
+        metavar="PASSWORD",
     ),
 ) -> None:
     logger.info("Load prefixes")
@@ -94,7 +128,19 @@ def zeph(
             universe.add(line)
     logger.info("%s distinct prefixes loaded", len(universe))
 
-    with IrisClient() as iris, ClickHouseClient() as clickhouse:
+    with (
+        IrisClient(
+            base_url=iris_base_url,
+            username=iris_username,
+            password=iris_password,
+        ) as iris,
+        ClickHouseClient(
+            base_url=clickhouse_base_url,
+            database=clickhouse_database,
+            username=clickhouse_username,
+            password=clickhouse_password,
+        ) as clickhouse,
+    ):
         ranker = getattr(rankers, ranker_class)()
         run_zeph(
             iris=iris,
@@ -108,7 +154,7 @@ def zeph(
             min_ttl=min_ttl,
             max_ttl=max_ttl,
             exploration_ratio=exploration_ratio,
-            previous_measurement=previous_measurement,
+            previous_uuid=previous_uuid,
             fixed_budget=fixed_budget,
             dry_run=dry_run,
         )
@@ -127,20 +173,20 @@ def run_zeph(
     min_ttl: int,
     max_ttl: int,
     exploration_ratio: float,
-    previous_measurement: str | None,
+    previous_uuid: str | None,
     fixed_budget: int | None,
     dry_run: bool,
 ) -> None:
     # Rank the prefixes based on the previous measurement
     ranked_prefixes = {}
-    if previous_measurement:
+    if previous_uuid:
         logger.info("Get previous agents")
-        previous_agents = get_measurement_agents(iris, previous_measurement)
+        previous_agents = get_measurement_agents(iris, previous_uuid)
         logger.info("Previous agents: %s", previous_agents)
 
         logger.info("Get previous links")
-        query = GetUniqueLinksByPrefix()
-        links = query.for_all_agents(clickhouse, previous_measurement, previous_agents)
+        query = GetUniqueLinksByPrefix(filter_virtual=True)
+        links = query.for_all_agents(clickhouse, previous_uuid, previous_agents)
 
         logger.info("Rank previous prefixes")
         ranked_prefixes = ranker(links)
