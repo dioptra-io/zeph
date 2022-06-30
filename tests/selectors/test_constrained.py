@@ -1,29 +1,28 @@
-from ipaddress import ip_network
-
-from zeph.selectors.constrained import (
-    ConstrainedEpsilonDFGSelector,
-    ConstrainedRandomSelector,
-)
+from zeph.selectors import ConstrainedRandomSelector
 
 
-def test_constrained_random_selector(agents_budget, bgp_prefixes):
-    selector = ConstrainedRandomSelector(agents_budget, bgp_prefixes)
+def test_constrained_random_selector(universe):
+    selector = ConstrainedRandomSelector(universe, {"a": 1, "b": 1})
+    prefixes_a = selector.select("a")
+    prefixes_b = selector.select("b")
+    assert len(prefixes_a) == 1
+    assert len(prefixes_b) == 1
+    assert len(prefixes_a & prefixes_b) == 0
 
-    exploitation, total = selector.select("agent_1")
 
-    assert exploitation == []
-    assert len(total) == 1
+def test_constrained_random_selector_zero_budget(universe):
+    selector = ConstrainedRandomSelector(universe, {"a": 0, "b": 1})
+    prefixes_a = selector.select("a")
+    prefixes_b = selector.select("b")
+    assert len(prefixes_a) == 0
+    assert len(prefixes_b) == 1
+    assert len(prefixes_a & prefixes_b) == 0
 
 
-def test_constrained_epsilon_selector(agents_budget, discoveries, bgp_prefixes):
-    selector = ConstrainedEpsilonDFGSelector(
-        "clickhouse://localhost:8123", 0.1, agents_budget, bgp_prefixes
-    )
-
-    selector.rank_per_agent = selector.compute_rank(discoveries)
-    selector.dispatch_per_agent = selector.compute_dispatch()
-
-    exploitation, total = selector.select("agent_1")
-
-    assert exploitation == {ip_network("10.0.0.0/24")}
-    assert len(total) == 1
+def test_constrained_random_selector_large_budget(universe):
+    selector = ConstrainedRandomSelector(universe, {"a": 10, "b": 1})
+    prefixes_a = selector.select("a")
+    prefixes_b = selector.select("b")
+    assert len(prefixes_a) == 2
+    assert len(prefixes_b) == 1
+    assert len(prefixes_a & prefixes_b) == 0

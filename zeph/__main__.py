@@ -3,7 +3,7 @@ import typer
 from zeph.main import zeph
 
 
-def run():
+def run() -> None:
     """
     Run the CLI from a path like `zeph__main__:run`.
     Useful for poetry.
@@ -11,4 +11,5 @@ def run():
     typer.run(zeph)
 
 
-run()
+if __name__ == "__main__":
+    run()

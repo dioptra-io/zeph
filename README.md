@@ -17,110 +17,59 @@ First, install the Zeph package:
 pip install dioptra-zeph
 ```
 
-Then, execute `zeph`:
-
-```
-Usage: zeph.py [OPTIONS]
-
-Options:
-  --api-url TEXT                  [default: https://api.iris.dioptra.io]
-  --api-username TEXT             [required]
-  --api-password TEXT             [required]
-  --database-url TEXT             [default:
-                                  http://localhost:8123?database=iris]
-
-  --bgp-prefixes-path PATH        [required]
-  --agent-tag TEXT                [default: all]
-  --tool TEXT                     [default: diamond-miner]
-  --protocol TEXT                 [default: icmp]
-  --min-ttl INTEGER               [default: 2]
-  --max-ttl INTEGER               [default: 32]
-  --epsilon FLOAT                 [default: 0.1]
-  --previous-measurement-uuid UUID
-  --fixed-budget INTEGER
-  --dry-run / --no-dry-run        [default: False]
-  --install-completion [bash|zsh|fish|powershell|pwsh]
-                                  Install completion for the specified shell.
-  --show-completion [bash|zsh|fish|powershell|pwsh]
-                                  Show completion for the specified shell, to
-                                  copy it or customize the installation.
-
-  --help                          Show this message and exit.
+Zeph takes as input a list of /24 (IPv4) or /64 (IPv6) prefixes:
+```sh
+# prefixes.txt
+8.8.8.0/24
+2001:4860:4860::/64
 ```
 
-## ✨ Generate the BGP prefix file 
-
-Zeph needs to know the set of BGP prefixes that it can probe. 
-You can create a BGP prefix file by downloading the latest RIB from [routeviews.org](http://routeviews.org) and then convert it into a pickle file.
-
-The easiest way to do that is to use the command line tools located in the `utils/` folder.
-
-### Download the RIB
-
-`zeph-bgp-download`
-
-```
-Usage: zeph_bgp_download.py [OPTIONS]
-
-Options:
-  --latestv4 / --no-latestv4      [default: False]
-  --latestv6 / --no-latestv6      [default: False]
-  --filepath PATH
-  --install-completion [bash|zsh|fish|powershell|pwsh]
-                                  Install completion for the specified shell.
-  --show-completion [bash|zsh|fish|powershell|pwsh]
-                                  Show completion for the specified shell, to
-                                  copy it or customize the installation.
-
-  --help                          Show this message and exit.
-  ```
-
-### Convert the RIB to a pickle file
-
-`zeph-bgp-convert`
-
-```
-Usage: zeph_bgp_convert.py [OPTIONS] ROUTEVIEWS_FILEPATH
-
-Arguments:
-  ROUTEVIEWS_FILEPATH  [required]
-
-Options:
-  --bgp-prefixes-path PATH
-  --excluded-prefixes-path PATH
-  --install-completion [bash|zsh|fish|powershell|pwsh]
-                                  Install completion for the specified shell.
-  --show-completion [bash|zsh|fish|powershell|pwsh]
-                                  Show completion for the specified shell, to
-                                  copy it or customize the installation.
-
-  --help                          Show this message and exit.
+To start a measurement from scratch:
+```bash
+zeph prefixes.txt
 ```
 
+To start from a previous measurement:
+```bash
+zeph prefixes.txt UUID
+```
 
+Zeph relies on [iris-client](https://github.com/dioptra-io/iris-client) and [pych-client](https://github.com/dioptra-io/pych-client)
+for communicating with Iris and ClickHouse. See their respective documentation to know how to specify the credentials.
 
-## 📚 Publications
+## ✨ Generate prefix lists from BGP RIBs
+
+You can create an _exhaustive_ list of /24 prefixes from a BGP RIB dump:
+```bash
+pyasn_util_download.py --latest
+# Connecting to ftp://archive.routeviews.org
+# Finding most recent archive in /bgpdata/2022.05/RIBS ...
+# Downloading ftp://archive.routeviews.org//bgpdata/2022.05/RIBS/rib.20220524.1000.bz2
+#  100%, 659KB/s
+# Download complete.
+zeph-bgp-convert --print-progress rib.20220524.1000.bz2 prefixes.txt
+```
 
 ## 📚 Publications
 
 ```bibtex
 @article{10.1145/3523230.3523232,
-author = {Gouel, Matthieu and Vermeulen, Kevin and Mouchet, Maxime and Rohrer, Justin P. and Fourmaux, Olivier and Friedman, Timur},
-title = {Zeph &amp; Iris Map the Internet: A Resilient Reinforcement Learning Approach to Distributed IP Route Tracing},
-year = {2022},
-issue_date = {January 2022},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-volume = {52},
-number = {1},
-issn = {0146-4833},
-url = {https://doi.org/10.1145/3523230.3523232},
-doi = {10.1145/3523230.3523232},
-journal = {SIGCOMM Comput. Commun. Rev.},
-month = {mar},
-pages = {2–9},
-numpages = {8},
-keywords = {active internet measurements, internet topology}
+    author = {Gouel, Matthieu and Vermeulen, Kevin and Mouchet, Maxime and Rohrer, Justin P. and Fourmaux, Olivier and Friedman, Timur},
+    title = {Zeph &amp; Iris Map the Internet: A Resilient Reinforcement Learning Approach to Distributed IP Route Tracing},
+    year = {2022},
+    issue_date = {January 2022},
+    publisher = {Association for Computing Machinery},
+    address = {New York, NY, USA},
+    volume = {52},
+    number = {1},
+    issn = {0146-4833},
+    url = {https://doi.org/10.1145/3523230.3523232},
+    doi = {10.1145/3523230.3523232},
+    journal = {SIGCOMM Comput. Commun. Rev.},
+    month = {mar},
+    pages = {2–9},
+    numpages = {8},
+    keywords = {active internet measurements, internet topology}
 }
 ```
 
