@@ -31,7 +31,7 @@ zeph prefixes.txt
 
 To start from a previous measurement:
 ```bash
-zeph --previous-measurement UUID prefixes.txt
+zeph prefixes.txt UUID
 ```
 
 Zeph relies on [iris-client](https://github.com/dioptra-io/iris-client) and [pych-client](https://github.com/dioptra-io/pych-client)
