@@ -121,7 +121,6 @@ def zeph(
     ),
 ) -> None:
     logging.basicConfig(level=logging.INFO)
-    logger.info("Load prefixes")
     universe = set()
     with prefixes_file.open() as f:
         for line in tqdm(f):
@@ -130,7 +129,7 @@ def zeph(
             line = line.strip()
             assert line.endswith("/24") or line.endswith("/64")
             universe.add(line)
-    logger.info("%s distinct prefixes loaded", len(universe))
+    logger.info("file=%s distinct-prefixes=%s", prefixes_file, len(universe))
 
     with (
         IrisClient(
@@ -184,22 +183,22 @@ def run_zeph(
     # Rank the prefixes based on the previous measurement
     ranked_prefixes = {}
     if previous_uuid:
-        logger.info("Get previous agents")
+        logger.info("get-previous-agents")
         previous_agents = get_measurement_agents(iris, previous_uuid)
-        logger.info("Previous agents: %s", previous_agents)
+        logger.info("previous-agents=%s", previous_agents)
 
-        logger.info("Get previous links")
+        logger.info("get-previous-links")
         query = GetUniqueLinksByPrefix(filter_virtual=True)
         links = query.for_all_agents(clickhouse, previous_uuid, previous_agents)
 
-        logger.info("Rank previous prefixes")
+        logger.info("rank-previous-prefixes")
         ranked_prefixes = ranker(links)
 
-    logger.info("Get current agents")
+    logger.info("get-current-agents")
     agents = get_agents(iris, agent_tag)
-    logger.info("Current agents: %s", list(agents.keys()))
+    logger.info("current-agents=%s", list(agents.keys()))
 
-    logger.info("Compute agents budget")
+    logger.info("compute-budget")
     budgets: dict[str, int] = {}
     for agent_uuid, agent in agents.items():
         if fixed_budget:
@@ -210,6 +209,7 @@ def run_zeph(
             # 6 hours at 100'000 pps -> 200'000 prefixes (from the paper)
             probing_rate = agent["parameters"]["max_probing_rate"]
             budgets[agent_uuid] = probing_rate * 2
+        logger.info("agent=%s budget=%s", agent_uuid, budgets[agent_uuid])
 
     # Instantiate the selector
     selector = EpsilonSelector(universe, budgets, exploration_ratio, ranked_prefixes)
@@ -217,20 +217,18 @@ def run_zeph(
     # Select and upload the prefixes
     targets = {}
     for agent_uuid in agents:
-        logger.info("Select prefixes for %s", agent_uuid)
+        logger.info("agent=%s select-prefixes", agent_uuid)
         prefixes = selector.select(agent_uuid)
         if not dry_run:
-            logger.info("Upload prefixes for %s", agent_uuid)
+            logger.info("agent=%s upload-prefixes", agent_uuid)
             targets[agent_uuid] = upload_prefix_list(
                 iris, prefixes, protocol, min_ttl, max_ttl
             )
-            logger.info(
-                "Uploaded prefixes for %s to %s", agent_uuid, targets[agent_uuid]
-            )
+            logger.info("agent=%s key=%s", agent_uuid, targets[agent_uuid])
 
     # Create the measurement
     if not dry_run:
-        logger.info("Create measurement")
+        logger.info("create-measurement")
         definition = {
             "tags": measurement_tags,
             "tool": tool,
@@ -247,4 +245,4 @@ def run_zeph(
             ],
         }
         measurement = create_measurement(iris, definition)
-        logger.info("Created measurement %s", measurement["uuid"])
+        logger.info("measurement_uuid=%s", measurement["uuid"])
