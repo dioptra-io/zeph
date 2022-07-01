@@ -18,6 +18,9 @@ class DFGCoverRanker(AbstractRanker):
     def __call__(
         self, links: dict[tuple[Agent, Network], set[Link]]
     ) -> dict[Agent, list[Network]]:
+        if not links:
+            return {}
+
         covered: set[tuple[str, str]] = set()
         prefixes = defaultdict(list)
         subcollections = defaultdict(list)

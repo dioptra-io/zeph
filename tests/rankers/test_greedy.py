@@ -15,3 +15,8 @@ def test_greedy_ranker():
     ranked = ranker(links)
     assert ranked["a"] == [ip_network("192.168.1.0/24"), ip_network("192.168.2.0/24")]
     assert ranked["b"] == [ip_network("192.168.1.0/24")]
+
+
+def test_greedy_ranker_empty():
+    ranker = GreedyCoverRanker()
+    ranker({})
