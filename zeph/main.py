@@ -84,26 +84,6 @@ def zeph(
         False,
         help="Do not actually perform the measurement",
     ),
-    clickhouse_base_url: str = typer.Option(
-        None,
-        help="ClickHouse URL",
-        metavar="URL",
-    ),
-    clickhouse_database: str = typer.Option(
-        None,
-        help="ClickHouse database",
-        metavar="DATABASE",
-    ),
-    clickhouse_username: str = typer.Option(
-        None,
-        help="ClickHouse username",
-        metavar="USERNAME",
-    ),
-    clickhouse_password: str = typer.Option(
-        None,
-        help="ClickHouse password",
-        metavar="PASSWORD",
-    ),
     iris_base_url: str = typer.Option(
         None,
         help="Iris API URL",
@@ -131,36 +111,31 @@ def zeph(
             universe.add(line)
     logger.info("file=%s distinct-prefixes=%s", prefixes_file, len(universe))
 
-    with (
-        IrisClient(
-            base_url=iris_base_url,
-            username=iris_username,
-            password=iris_password,
-        ) as iris,
-        ClickHouseClient(
-            base_url=clickhouse_base_url,
-            database=clickhouse_database,
-            username=clickhouse_username,
-            password=clickhouse_password,
-        ) as clickhouse,
-    ):
-        ranker = getattr(rankers, ranker_class)()
-        run_zeph(
-            iris=iris,
-            clickhouse=clickhouse,
-            ranker=ranker,
-            universe=universe,
-            agent_tag=agent_tag,
-            measurement_tags=measurement_tags.split(","),
-            tool=tool,
-            protocol=protocol,
-            min_ttl=min_ttl,
-            max_ttl=max_ttl,
-            exploration_ratio=exploration_ratio,
-            previous_uuid=previous_uuid,
-            fixed_budget=fixed_budget,
-            dry_run=dry_run,
-        )
+    with IrisClient(
+        base_url=iris_base_url,
+        username=iris_username,
+        password=iris_password,
+        timeout=60,
+    ) as iris:
+        credentials = iris.get("/users/me/services").json()
+        with ClickHouseClient(**credentials["clickhouse"]) as clickhouse:
+            ranker = getattr(rankers, ranker_class)()
+            run_zeph(
+                iris=iris,
+                clickhouse=clickhouse,
+                ranker=ranker,
+                universe=universe,
+                agent_tag=agent_tag,
+                measurement_tags=measurement_tags.split(","),
+                tool=tool,
+                protocol=protocol,
+                min_ttl=min_ttl,
+                max_ttl=max_ttl,
+                exploration_ratio=exploration_ratio,
+                previous_uuid=previous_uuid,
+                fixed_budget=fixed_budget,
+                dry_run=dry_run,
+            )
 
 
 def run_zeph(
