@@ -117,7 +117,9 @@ def zeph(
         password=iris_password,
         timeout=60,
     ) as iris:
-        credentials = iris.get("/users/me/services").json()
+        credentials = iris.get(
+            "/users/me/services", params={"measurement_uuid": previous_uuid}
+        ).json()
         with ClickHouseClient(**credentials["clickhouse"]) as clickhouse:
             run_zeph(
                 iris=iris,

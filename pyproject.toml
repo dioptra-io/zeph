@@ -13,10 +13,10 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-diamond-miner = "^0.10.0"
-dioptra-iris-client = "^0.4.4"
+diamond-miner = "^1.0.0"
+dioptra-iris-client = "^0.4.5"
 pyasn = "^1.6.1"
-pych-client = {extras = ["orjson"], version = "^0.2.10"}
+pych-client = {extras = ["orjson"], version = "^0.3.0"}
 py-radix = "^0.10.0"
 requests = "^2.25.0"
 tqdm = "^4.64.0"
