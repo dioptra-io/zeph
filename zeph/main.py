@@ -119,11 +119,10 @@ def zeph(
     ) as iris:
         credentials = iris.get("/users/me/services").json()
         with ClickHouseClient(**credentials["clickhouse"]) as clickhouse:
-            ranker = getattr(rankers, ranker_class)()
             run_zeph(
                 iris=iris,
                 clickhouse=clickhouse,
-                ranker=ranker,
+                ranker=ranker_class,
                 universe=universe,
                 agent_tag=agent_tag,
                 measurement_tags=measurement_tags.split(","),
@@ -142,7 +141,7 @@ def run_zeph(
     *,
     iris: IrisClient,
     clickhouse: ClickHouseClient,
-    ranker: AbstractRanker,
+    ranker: AbstractRanker | str,
     universe: set[Network],
     agent_tag: str,
     measurement_tags: list[str],
@@ -155,6 +154,10 @@ def run_zeph(
     fixed_budget: int | None,
     dry_run: bool,
 ) -> None:
+    if isinstance(ranker, str):
+        ranker_ = getattr(rankers, ranker)()
+    else:
+        ranker_ = ranker
     # Rank the prefixes based on the previous measurement
     ranked_prefixes = {}
     if previous_uuid:
@@ -167,7 +170,7 @@ def run_zeph(
         links = query.for_all_agents(clickhouse, previous_uuid, previous_agents)
 
         logger.info("rank-previous-prefixes")
-        ranked_prefixes = ranker(links)
+        ranked_prefixes = ranker_(links)
 
     logger.info("get-current-agents")
     agents = get_agents(iris, agent_tag)
