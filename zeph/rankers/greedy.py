@@ -9,7 +9,7 @@ class GreedyCoverRanker(AbstractRanker):
         self, links: dict[tuple[Agent, Network], set[Link]]
     ) -> dict[Agent, list[Network]]:
         all_links: set[Link] = set()
-        covered: set[tuple[str, str]] = set()
+        covered: set[Link] = set()
         prefixes: dict[Agent, list[Network]] = defaultdict(list)
 
         for links_ in links.values():

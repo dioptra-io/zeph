@@ -21,7 +21,7 @@ class DFGCoverRanker(AbstractRanker):
         if not links:
             return {}
 
-        covered: set[tuple[str, str]] = set()
+        covered: set[Link] = set()
         prefixes = defaultdict(list)
         subcollections = defaultdict(list)
 
