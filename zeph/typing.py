@@ -1,3 +1,3 @@
 Agent = str
-Link = tuple[str, str]
+Link = int
 Network = str

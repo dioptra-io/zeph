@@ -11,17 +11,22 @@ from zeph.utilities import measurement_id, parse_network
 
 @dataclass(frozen=True)
 class GetUniqueLinksByPrefix(LinksQuery):
+    """
+    Get the list of unique links per prefix.
+    To make things faster, we only retrieve the hash of each link,
+    since we do not need the actual IP addresses seen.
+    """
+
     def statement(
         self, measurement_id: str, subset: IPNetwork = UNIVERSE_SUBSET
     ) -> str:
         return f"""
         SELECT
-            probe_protocol,
             probe_dst_prefix,
-            groupUniqArray((near_addr,far_addr)) AS links
+            groupUniqArray(cityHash64((near_addr, far_addr))) AS links
         FROM {links_table(measurement_id)}
         WHERE {self.filters(subset)}
-        GROUP BY (probe_protocol, probe_dst_prefix)
+        GROUP BY probe_dst_prefix
         """
 
     def for_all_agents(
@@ -33,5 +38,5 @@ class GetUniqueLinksByPrefix(LinksQuery):
                 client, measurement_id(measurement_uuid, agent_uuid)
             ):
                 network = parse_network(row["probe_dst_prefix"])
-                links[(agent_uuid, network)] = set(tuple(link) for link in row["links"])  # type: ignore
+                links[(agent_uuid, network)] = set(row["links"])
         return links
