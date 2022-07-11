@@ -1,4 +1,5 @@
 from collections import defaultdict
+from math import floor, log
 
 from zeph.rankers import AbstractRanker
 from zeph.typing import Agent, Link, Network
@@ -27,9 +28,7 @@ class DFGCoverRanker(AbstractRanker):
 
         # Populate the sub-collections
         for (agent, prefix), links_ in links.items():
-            k = 0
-            while self.p ** (k + 1) < len(links_):
-                k += 1
+            k = floor(log(len(links_) or 1, self.p))
             subcollections[k].append((agent, prefix))
         k_max = max(subcollections.keys())
 
@@ -41,9 +40,7 @@ class DFGCoverRanker(AbstractRanker):
                     covered.update(links[(agent, prefix)])
                 else:
                     links[(agent, prefix)] -= covered
-                    k_prime = 0
-                    while self.p ** (k_prime + 1) < len(links[(agent, prefix)]):
-                        k_prime += 1
+                    k_prime = floor(log(len(links[(agent, prefix)]) or 1, self.p))
                     subcollections[k_prime].append((agent, prefix))
 
         # k = 0
