@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dioptra-zeph"
-version = "1.2.5"
+version = "1.2.6"
 description = "An orchestrator for distributed IP tracing"
 authors = ["Matthieu Gouel <matthieu.gouel@protonmail.com>"]
 homepage = "https://github.com/dioptra-io/zeph"
