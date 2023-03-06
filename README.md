@@ -1,6 +1,6 @@
 # 🌬️ Zeph
 
-[![Tests](https://img.shields.io/github/workflow/status/dioptra-io/zeph/Tests?logo=github)](https://img.shields.io/github/actions/workflow/status/dioptra-io/zeph/test.yml?branch=main)
+[![Tests](https://img.shields.io/github/workflow/status/dioptra-io/zeph/test.yml?logo=github)](https://github.com/dioptra-io/zeph/actions/workflows/tests.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/dioptra-io/zeph?logo=codecov&logoColor=white)](https://app.codecov.io/gh/dioptra-io/zeph)
 [![PyPI](https://img.shields.io/pypi/v/dioptra-zeph?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/dioptra-zeph/)
 
