@@ -6,22 +6,23 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
-      - uses: dioptra-io/setup-poetry-action@v1
+          python-version: '3.12'
+      - name: Install Poetry  
+        run: pipx install poetry
       - name: Install package
-        run: poetry install
+        run: poetry install --with dev
       - name: Run tests
         run: poetry run pytest --cov=zeph --cov-report=xml
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
 
   pypi:
     needs: [test]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: dioptra-io/publish-python-action@v1
         with:
           password: ${{ secrets.PYPI_PASSWORD }}
